@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Titukulane — Sign In</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="file_00000000b0d081f4b15dfb2bef25ff90.png">
+</head>
+<body class="auth-body">
+
+<div class="auth-wrap">
+  <aside class="auth-aside">
+    <span class="brand-mark">
+      <span class="stamp-badge"><i class="fa-solid fa-book"></i></span>
+      titukulane
+    </span>
+
+    <div class="pitch">
+      <h1>Every contribution, counted. Every loan, tracked.</h1>
+      <p>A single passbook for your savings group — member records, contributions, loans and repayments, kept in order.</p>
+
+      <div class="mt-16">
+        <div class="ledger-line"><i class="fa-solid fa-check"></i> Track member contributions &amp; confirmations</div>
+        <div class="ledger-line"><i class="fa-solid fa-check"></i> Loan eligibility, approvals &amp; repayments</div>
+        <div class="ledger-line"><i class="fa-solid fa-check"></i> Group-wide analytics for admins &amp; treasurers</div>
+      </div>
+    </div>
+
+    <div class="footnote">Titukulane Savings group for all &middot; Ledger System v1.0</div>
+  </aside>
+
+  <div class="auth-main">
+    <div class="auth-card">
+      <div class="mobile-brand">
+        <span class="stamp-badge" style="width:30px;height:30px;font-size:13px;color:var(--brass);border-color:var(--brass)"><i class="fa-solid fa-book"></i></span>
+        titukulane
+      </div>
+
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to your account to continue.</p>
+
+      <!-- Error message container -->
+      <div class="form-error" id="form-error" style="display: none; color: #d9534f; background: #fdf2f2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;"></div>
+
+      <form id="login-form" onsubmit="loginUser(event)" novalidate>
+        <div class="form-group">
+          <label for="identifier">Email or phone number</label>
+          <input type="text" id="identifier" name="identifier" placeholder="you@example.com or 0991 234 567" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label for="group_name">Group name</label>
+          <input type="text" id="group_name" name="group_name" placeholder="Enter your group name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-field">
+            <input type="password" id="password" name="password" placeholder="Your password" required autocomplete="current-password">
+            <button type="button" class="toggle-vis" id="toggle-pw"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> Go to group
+        </button>
+      </form>
+
+      <div class="demo-hint">
+        <p class="auth-foot">New here? <a href="createnewgroup.html">Create a new group</a></p>
+        <p class="auth-foot" style="margin-top:6px">How it works <a href="demo.html">Explore</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="login.js"></script>
+</body>
+</html>
