@@ -789,3 +789,135 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
         recent_transactions=[TransactionResponse.model_validate(t) for t in recent_tx],
         top_members=[MemberResponse.model_validate(m) for m in top_members]
     )
+
+# ==================== ADDED TAB ENDPOINTS ====================
+
+# --- 1. History / Transactions Tab ---
+@app.get("/api/members/{member_id}/transactions", response_model=List[TransactionResponse])
+@app.get("/members/{member_id}/transactions", response_model=List[TransactionResponse])
+def get_member_transactions(member_id: int, db: Session = Depends(get_db)):
+    transactions = db.query(Transaction).filter(Transaction.member_id == member_id)\
+        .order_by(Transaction.created_at.desc()).all()
+    return [TransactionResponse.model_validate(t) for t in transactions]
+
+@app.post("/api/members/{member_id}/transactions", response_model=TransactionResponse)
+@app.post("/members/{member_id}/transactions", response_model=TransactionResponse)
+def create_transaction(member_id: int, tx: TransactionCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+        
+    db_tx = Transaction(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=tx.type,
+        amount=tx.amount,
+        currency=tx.currency,
+        method=tx.method,
+        description=tx.description,
+        reference=tx.reference
+    )
+    
+    if tx.type == TransactionType.DEPOSIT:
+        member.savings_balance += tx.amount
+    elif tx.type == TransactionType.WITHDRAWAL:
+        if member.savings_balance < tx.amount:
+            raise HTTPException(status_code=400, detail="Insufficient funds")
+        member.savings_balance -= tx.amount
+        
+    db.add(db_tx)
+    db.commit()
+    db.refresh(db_tx)
+    return TransactionResponse.model_validate(db_tx)
+
+# --- 2. Chat Tab ---
+@app.get("/api/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
+@app.get("/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
+def get_chat_messages(group_id: int, db: Session = Depends(get_db)):
+    messages = db.query(ChatMessage).filter(ChatMessage.group_id == group_id)\
+        .order_by(ChatMessage.created_at.asc()).all()
+    
+    res = []
+    for m in messages:
+        msg_data = ChatMessageResponse.model_validate(m)
+        if m.member:
+            msg_data.member_name = m.member.full_name
+        res.append(msg_data)
+    return res
+
+@app.post("/api/groups/{group_id}/messages", response_model=ChatMessageResponse)
+@app.post("/groups/{group_id}/messages", response_model=ChatMessageResponse)
+def create_chat_message(group_id: int, msg: ChatMessageCreate, member_id: int, db: Session = Depends(get_db)):
+    db_msg = ChatMessage(
+        group_id=group_id,
+        member_id=member_id,
+        sender=msg.sender,
+        text=msg.text
+    )
+    db.add(db_msg)
+    db.commit()
+    db.refresh(db_msg)
+    return ChatMessageResponse.model_validate(db_msg)
+
+# --- 3. Loans Tab ---
+@app.get("/api/members/{member_id}/loans", response_model=List[LoanResponse])
+@app.get("/members/{member_id}/loans", response_model=List[LoanResponse])
+def get_member_loans(member_id: int, db: Session = Depends(get_db)):
+    loans = db.query(Loan).filter(Loan.member_id == member_id).all()
+    return [LoanResponse.model_validate(l) for l in loans]
+
+@app.post("/api/members/{member_id}/loans", response_model=LoanResponse)
+@app.post("/members/{member_id}/loans", response_model=LoanResponse)
+def apply_for_loan(member_id: int, loan: LoanCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    loan_num = generate_loan_number(db, member.group_id)
+    monthly = (loan.principal * (1 + loan.interest_rate / 100)) / loan.duration_months
+
+    db_loan = Loan(
+        group_id=member.group_id,
+        member_id=member_id,
+        loan_number=loan_num,
+        title=loan.title,
+        purpose=loan.purpose,
+        principal=loan.principal,
+        interest_rate=loan.interest_rate,
+        duration_months=loan.duration_months,
+        monthly_payment=round(monthly, 2),
+        status=LoanStatus.PENDING
+    )
+    db.add(db_loan)
+    db.commit()
+    db.refresh(db_loan)
+    return LoanResponse.model_validate(db_loan)
+
+# --- 4. Notes Tab ---
+@app.get("/api/members/{member_id}/notes", response_model=List[DailyNoteResponse])
+@app.get("/members/{member_id}/notes", response_model=List[DailyNoteResponse])
+def get_member_notes(member_id: int, db: Session = Depends(get_db)):
+    notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
+        .order_by(DailyNote.note_date.desc()).all()
+    return [DailyNoteResponse.model_validate(n) for n in notes]
+
+@app.post("/api/members/{member_id}/notes", response_model=DailyNoteResponse)
+@app.post("/members/{member_id}/notes", response_model=DailyNoteResponse)
+def create_note(member_id: int, note: DailyNoteCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    db_note = DailyNote(
+        group_id=member.group_id,
+        member_id=member_id,
+        text=note.text,
+        mood=note.mood
+    )
+    db.add(db_note)
+    db.commit()
+    db.refresh(db_note)
+    return DailyNoteResponse.model_validate(db_note)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
