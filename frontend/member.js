@@ -1,34 +1,10 @@
-
-
 const API_BASE = 'https://codeforbettertomorrow.onrender.com';
-// At the top of member.js (global scope)
+
+// Global variable to keep track of Chart instance
 let metricsChartInstance = null;
 
-function updateMetricsChart(data) {
-    const ctx = document.getElementById('metricsChart');
-    if (!ctx) return;
-
-    // Destroy existing instance before building a new chart
-    if (metricsChartInstance !== null) {
-        metricsChartInstance.destroy();
-    }
-
-    metricsChartInstance = new Chart(ctx, {
-        type: 'line', // or 'bar'
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: 'Savings Progress',
-                data: data.values,
-            }]
-        },
-        options: {
-            responsive: true
-        }
-    });
-}
 // ==================== AUTH STATE ====================
-function getToken()      { return sessionStorage.getItem('titukulane_token'); }
+function getToken()       { return sessionStorage.getItem('titukulane_token'); }
 function getMemberId()   { return parseInt(sessionStorage.getItem('titukulane_member_id')) || null; }
 function getGroupId()    { return parseInt(sessionStorage.getItem('titukulane_group_id')) || null; }
 function getGroupName()  { return sessionStorage.getItem('titukulane_group_name') || ''; }
@@ -151,6 +127,32 @@ function setLoading(button, loading = true, text = 'Loading...') {
     }
 }
 
+// ==================== HELPER FORMATTERS ====================
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function formatType(type) {
+    if (!type) return 'Transaction';
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatDateLong(dateStr) {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
     if (!requireAuth()) return;
@@ -171,7 +173,7 @@ function renderDashboard(data) {
     // Balance
     const balanceEl = document.querySelector('.balance-amount');
     if (balanceEl) {
-        balanceEl.textContent = `$${data.member.savings_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        balanceEl.textContent = `MWK ${data.member.savings_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
     // Interest rate
@@ -186,7 +188,7 @@ function renderDashboard(data) {
 
     // Profile stats
     const profileStats = document.querySelectorAll('.profile-stat .num');
-    if (profileStats[0]) profileStats[0].textContent = `$${data.member.savings_balance.toLocaleString()}`;
+    if (profileStats[0]) profileStats[0].textContent = `MWK ${data.member.savings_balance.toLocaleString()}`;
     if (profileStats[1]) profileStats[1].textContent = data.member.credit_score;
     if (profileStats[2]) profileStats[2].textContent = data.group.total_members;
 
@@ -227,12 +229,12 @@ function renderSavingsGoal(goal) {
     const targetLeft = document.querySelector('.goal-stats .target');
 
     if (goalName) goalName.textContent = goal.name;
-    if (goalTarget) goalTarget.textContent = `Target: $${goal.target_amount.toLocaleString()}`;
+    if (goalTarget) goalTarget.textContent = `Target: MWK ${goal.target_amount.toLocaleString()}`;
 
     const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
     if (goalFill) goalFill.style.width = `${Math.min(pct, 100)}%`;
-    if (currentSaved) currentSaved.textContent = `$${goal.current_amount.toLocaleString()} saved`;
-    if (targetLeft) targetLeft.textContent = `$${Math.max(0, goal.target_amount - goal.current_amount).toLocaleString()} to go`;
+    if (currentSaved) currentSaved.textContent = `MWK ${goal.current_amount.toLocaleString()} saved`;
+    if (targetLeft) targetLeft.textContent = `MWK ${Math.max(0, goal.target_amount - goal.current_amount).toLocaleString()} to go`;
 }
 
 function renderTransactions(transactions) {
@@ -261,7 +263,7 @@ function renderTransactions(transactions) {
                 <div class="tx-sub">${escapeHtml(tx.description || tx.method || 'Transaction')}</div>
             </div>
             <div class="tx-amount">
-                <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</div>
+                <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}MWK ${tx.amount.toFixed(2)}</div>
                 <div class="date">${displayDate}</div>
             </div>
         </div>`;
@@ -294,8 +296,13 @@ function updateMetricsChart(currentBalance) {
     const canvas = document.getElementById('metricsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
+    // Safely destroy previous instance to prevent canvas rendering errors
+    if (metricsChartInstance !== null) {
+        metricsChartInstance.destroy();
+    }
+
     const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
+    metricsChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -342,7 +349,7 @@ function updateMetricsChart(currentBalance) {
                     ticks: {
                         font: { family: 'Inter', size: 11 },
                         color: '#6b7280',
-                        callback: function(value) { return '$' + value.toLocaleString(); }
+                        callback: function(value) { return 'MWK ' + value.toLocaleString(); }
                     }
                 },
                 x: {
@@ -432,7 +439,7 @@ async function confirmDeposit() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Deposit failed');
 
-        showToast(`Deposit successful! New balance: $${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Deposit successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
 
         if (passwordInput) passwordInput.value = '';
         closeModal('depositModal');
@@ -469,7 +476,7 @@ async function confirmWithdrawal() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Withdrawal failed');
 
-        showToast(`Withdrawal successful! New balance: $${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Withdrawal successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
         closeModal('withdrawModal');
         loadDashboard();
     } catch (err) {
@@ -523,7 +530,7 @@ async function requestLoan() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Loan request failed');
 
-        showToast(`Loan submitted! ${data.loan_number}. Monthly: $${data.monthly_payment.toFixed(2)}`, 'success');
+        showToast(`Loan submitted! ${data.loan_number}. Monthly: MWK ${data.monthly_payment.toFixed(2)}`, 'success');
         closeModal('loanModal');
         loadDashboard();
     } catch (err) {
@@ -570,9 +577,9 @@ function renderLoanHistory(loans) {
 
     loans.forEach(loan => {
         const statusClass = loan.status === 'paid_off' ? 'loan-status-paid' :
-                           loan.status === 'active' ? 'loan-status-active' : 'loan-status-pending';
+                            loan.status === 'active' ? 'loan-status-active' : 'loan-status-pending';
         const statusText = loan.status === 'paid_off' ? 'Paid Off' :
-                          loan.status === 'active' ? 'Active' : 'Pending';
+                           loan.status === 'active' ? 'Active' : 'Pending';
 
         container.innerHTML += `
             <div class="loan-card">
@@ -582,7 +589,7 @@ function renderLoanHistory(loans) {
                 </div>
                 <div class="loan-amount-row">
                     <div class="loan-amount-item">
-                        <div class="num">$${loan.principal.toLocaleString()}</div>
+                        <div class="num">MWK ${loan.principal.toLocaleString()}</div>
                         <div class="label">Principal</div>
                     </div>
                     <div class="loan-amount-item">
@@ -590,7 +597,7 @@ function renderLoanHistory(loans) {
                         <div class="label">Interest</div>
                     </div>
                     <div class="loan-amount-item">
-                        <div class="num">$${loan.total_paid.toLocaleString()}</div>
+                        <div class="num">MWK ${loan.total_paid.toLocaleString()}</div>
                         <div class="label">Total Paid</div>
                     </div>
                 </div>
@@ -652,7 +659,7 @@ function renderTransactionHistory(transactions) {
                     <div class="tx-sub">${escapeHtml(tx.description || 'Transaction')}</div>
                 </div>
                 <div class="tx-amount">
-                    <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</div>
+                    <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}MWK ${tx.amount.toFixed(2)}</div>
                     <div class="date">${formatDateShort(tx.created_at)}</div>
                 </div>
             </div>`;
@@ -803,7 +810,7 @@ async function loadProfile() {
         }
 
         const stats = document.querySelectorAll('.profile-stat .num');
-        if (stats[0]) stats[0].textContent = `$${member.savings_balance.toLocaleString()}`;
+        if (stats[0]) stats[0].textContent = `MWK ${member.savings_balance.toLocaleString()}`;
         if (stats[1]) stats[1].textContent = member.credit_score;
         if (stats[2]) stats[2].textContent = member.total_shares;
     } catch (err) {
@@ -884,19 +891,19 @@ async function changePassword() {
     setLoading(btn, true, 'Updating...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}`, {
+        const res = await fetch(`${API_BASE}/members/${getMemberId()}/password`, {
             method: 'PUT',
             headers: getAuthHeaders(),
-            body: JSON.stringify({password: newPassword})
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword
+            })
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to change password');
 
-        showToast('Password changed! Please login again.', 'success');
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmPassword').value = '';
+        showToast('Password updated successfully', 'success');
         closeModal('changePasswordModal');
     } catch (err) {
         showToast(err.message, 'error');
@@ -904,219 +911,3 @@ async function changePassword() {
         setLoading(btn, false);
     }
 }
-
-// ==================== REPORTS ====================
-async function downloadReport() {
-    if (!requireAuth()) return;
-
-    const btn = document.querySelector('.print-report-btn');
-    setLoading(btn, true, 'Generating...');
-
-    try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/report`, {
-            headers: getAuthHeaders()
-        });
-        if (!res.ok) throw new Error('Failed to generate report');
-        const data = await res.json();
-
-        const txRows = data.transactions.map(tx => {
-            const isPositive = ['deposit', 'interest', 'loan_disbursement'].includes(tx.type);
-            return `
-            <tr>
-                <td>${formatDateShort(tx.date)}</td>
-                <td><strong>${formatType(tx.type)}</strong><br><small style="color:#6b7280;">${escapeHtml(tx.description || '')}</small></td>
-                <td>${tx.method || '—'}</td>
-                <td style="text-align:right;"><span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</span></td>
-            </tr>`;
-        }).join('');
-
-        const reportWindow = window.open('', '', 'height=800,width=900');
-        reportWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Transaction Report — ${escapeHtml(data.member_name)}</title>
-            <style>
-                body { font-family: 'Inter', Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; color: #1a1a2e; background: white; }
-                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1a5f3c; padding-bottom: 15px; }
-                .header h1 { margin: 0; color: #1a5f3c; font-size: 28px; }
-                .header p { margin: 5px 0; color: #6b7280; font-size: 14px; }
-                .member-info { background: #f5f7f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-                .info-row { font-size: 13px; }
-                .info-label { font-weight: 600; color: #1a5f3c; }
-                .info-value { color: #1a1a2e; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                thead { background: #1a5f3c; color: white; }
-                th { padding: 12px; text-align: left; font-weight: 600; font-size: 13px; }
-                td { padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
-                tr:nth-child(even) { background: #f5f7f5; }
-                .positive { color: #27ae60; font-weight: 600; }
-                .negative { color: #c0392b; font-weight: 600; }
-                .footer { margin-top: 30px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 15px; }
-                @media print { body { margin: 0; padding: 10px; } .header { margin-bottom: 20px; } }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>🏦 Transaction Report</h1>
-                <p>Titukulane+ Member Portal — ${escapeHtml(data.group_name || 'Savings Group')}</p>
-                <p>Generated on ${formatDateTime(data.generated_at)}</p>
-            </div>
-            <div class="member-info">
-                <div class="info-row"><span class="info-label">Member Name:</span> <span class="info-value">${escapeHtml(data.member_name)}</span></div>
-                <div class="info-row"><span class="info-label">Member ID:</span> <span class="info-value">${data.member_id}</span></div>
-                <div class="info-row"><span class="info-label">Current Balance:</span> <span class="info-value">$${data.summary.current_balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-                <div class="info-row"><span class="info-label">Credit Score:</span> <span class="info-value">${data.summary.credit_score}</span></div>
-                <div class="info-row"><span class="info-label">Total Shares:</span> <span class="info-value">${data.summary.total_shares}</span></div>
-                <div class="info-row"><span class="info-label">Loans Paid Off:</span> <span class="info-value">${data.summary.loans_paid_off}</span></div>
-            </div>
-            <table>
-                <thead><tr><th>Date</th><th>Description</th><th>Method</th><th style="text-align:right;">Amount</th></tr></thead>
-                <tbody>${txRows}</tbody>
-            </table>
-            <div class="footer">
-                <p>This is an official transaction report from Titukulane+ Member Portal.</p>
-                <p>For more information, contact your bank committee.</p>
-            </div>
-        </body>
-        </html>`);
-        reportWindow.document.close();
-        setTimeout(() => reportWindow.print(), 250);
-    } catch (err) {
-        showToast(err.message, 'error');
-    } finally {
-        setLoading(btn, false);
-    }
-}
-
-// ==================== NOTIFICATIONS ====================
-async function loadNotifications() {
-    if (!requireAuth()) return;
-    try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/notifications?unread_only=true`, {
-            headers: getAuthHeaders()
-        });
-        if (!res.ok) throw new Error('Failed to load notifications');
-        const notifications = await res.json();
-        renderNotifications(notifications);
-    } catch (err) {
-        showToast(err.message, 'error');
-    }
-}
-
-function renderNotifications(notifications) {
-    const container = document.querySelector('#notifModal > div > div:last-child');
-    if (!container) return;
-
-    if (!notifications || notifications.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-dim);">No new notifications</div>';
-        return;
-    }
-
-    const iconMap = {
-        deposit: 'fa-check', interest: 'fa-coins', credit_score: 'fa-star',
-        loan_due: 'fa-triangle-exclamation', loan_approved: 'fa-hand-holding-dollar',
-        group_invite: 'fa-user-plus', general: 'fa-bell'
-    };
-    const colorMap = {
-        deposit: 'green', interest: 'gold', credit_score: 'blue',
-        loan_due: 'red', loan_approved: 'blue', group_invite: 'purple', general: 'gray'
-    };
-
-    container.innerHTML = notifications.map(n => `
-        <div class="notif-item" onclick="markNotificationRead(${n.id})">
-            <div class="notif-icon ${colorMap[n.type] || 'gray'}"><i class="fas ${iconMap[n.type] || 'fa-bell'}"></i></div>
-            <div class="notif-content">
-                <div class="notif-title">${escapeHtml(n.title)}</div>
-                <div class="notif-desc">${escapeHtml(n.description)}</div>
-                <div class="notif-time">${formatDateShort(n.created_at)}</div>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function markNotificationRead(notifId) {
-    if (!requireAuth()) return;
-    try {
-        await fetch(`${API_BASE}/members/${getMemberId()}/notifications/${notifId}/read`, {
-            method: 'PATCH',
-            headers: getAuthHeaders()
-        });
-        loadNotifications();
-        loadDashboard();
-    } catch (err) {
-        console.error('Mark read error:', err);
-    }
-}
-
-// ==================== PASSWORD TOGGLE ====================
-function initPasswordToggle() {
-    document.querySelectorAll('.toggle-vis, .toggle-password').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const input = this.previousElementSibling || this.parentElement.querySelector('input');
-            if (!input) return;
-            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
-            input.setAttribute('type', type);
-            const icon = this.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('fa-eye');
-                icon.classList.toggle('fa-eye-slash');
-            }
-        });
-    });
-}
-
-// ==================== HELPERS ====================
-function formatType(type) {
-    if (!type) return '—';
-    return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
-
-function formatDateShort(dateStr) {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-}
-
-function formatDateLong(dateStr) {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'});
-}
-
-function formatDateTime(dateStr) {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'});
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// ==================== INIT ====================
-document.addEventListener('DOMContentLoaded', function() {
-    initPasswordToggle();
-
-    // Handle Enter key in chat
-    const chatInput = document.getElementById('chatInput');
-    if (chatInput) {
-        chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-    }
-
-    // Auto-load dashboard if on member page and logged in
-    if (isLoggedIn() && document.querySelector('.page')) {
-        loadDashboard();
-    }
-});
