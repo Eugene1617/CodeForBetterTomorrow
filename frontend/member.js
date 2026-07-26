@@ -179,8 +179,26 @@ async function loadDashboard() {
         const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
             headers: getAuthHeaders()
         });
-        if (!res.ok) throw new Error('Failed to load dashboard');
         const data = await res.json();
+
+        // Log raw response for debugging
+        console.log('Dashboard raw response:', data);
+
+        if (!res.ok) {
+            throw new Error(data.detail || 'Failed to load dashboard');
+        }
+
+        // Defensive: backend might return member directly instead of DashboardResponse wrapper
+        if (!data.member && data.id && data.full_name) {
+            // Looks like a plain member object — wrap it minimally
+            data = { member: data, group: {}, recent_transactions: [], active_loans: [], savings_goal: null, recent_notes: [], unread_notifications: 0, group_members: [] };
+        }
+
+        if (!data.member) {
+            console.error('Unexpected dashboard structure:', JSON.stringify(data));
+            throw new Error('Server returned unexpected data. Check console for details.');
+        }
+
         renderDashboard(data);
     } catch (err) {
         showToast(err.message, 'error');
@@ -189,72 +207,79 @@ async function loadDashboard() {
 }
 
 function renderDashboard(data) {
+    const member = data.member || {};
+    const group = data.group || {};
+    const transactions = transactions || [];
+    const loans = loans || [];
+    const notes = notes || [];
+    const goal = goal || null;
+
     // Balance
     const balanceEl = document.getElementById('balanceAmount') || document.querySelector('.balance-amount');
     if (balanceEl) {
-        balanceEl.textContent = money(data.member.savings_balance);
+        balanceEl.textContent = money(member.savings_balance);
     }
 
     // Interest rate
     const interestRateEl = document.getElementById('interestRate');
     if (interestRateEl) {
-        interestRateEl.textContent = data.group.interest_rate;
+        interestRateEl.textContent = group.interest_rate;
     } else {
         const interestEl = document.querySelector('.balance-row .balance-item:nth-child(2)');
         if (interestEl) {
-            interestEl.innerHTML = `<i class="fas fa-percentage" style="color:var(--accent);"></i> ${data.group.interest_rate}% interest`;
+            interestEl.innerHTML = `<i class="fas fa-percentage" style="color:var(--accent);"></i> ${group.interest_rate}% interest`;
         }
     }
 
     // Profile name / avatar
     const displayName = document.getElementById('displayName');
-    if (displayName) displayName.textContent = data.member.full_name;
+    if (displayName) displayName.textContent = member.full_name;
     const profileAvatar = document.getElementById('profileAvatar');
-    if (profileAvatar && data.member.full_name) {
-        profileAvatar.textContent = data.member.full_name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    if (profileAvatar && member.full_name) {
+        profileAvatar.textContent = member.full_name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
     }
 
     // Profile stats
     const profileSavings = document.getElementById('profileSavings');
-    if (profileSavings) profileSavings.textContent = money(data.member.savings_balance);
+    if (profileSavings) profileSavings.textContent = money(member.savings_balance);
     const profileCreditScore = document.getElementById('profileCreditScore');
-    if (profileCreditScore) profileCreditScore.textContent = data.member.credit_score;
+    if (profileCreditScore) profileCreditScore.textContent = member.credit_score;
     const profileLoanCount = document.getElementById('profileLoanCount');
-    if (profileLoanCount) profileLoanCount.textContent = data.active_loans ? data.active_loans.length : 0;
+    if (profileLoanCount) profileLoanCount.textContent = loans ? loans.length : 0;
 
     // Member ID / joined line
     const profileId = document.getElementById('profileId') || document.querySelector('.profile-id');
     if (profileId) {
-        const joined = new Date(data.member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
-        profileId.textContent = `Member ID: ${data.member.member_id} | Since ${joined}`;
+        const joined = new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
+        profileId.textContent = `Member ID: ${member.member_id} | Since ${joined}`;
     }
 
     // Savings goal
     const goalSection = document.getElementById('savingsGoalSection');
-    if (data.savings_goal) {
+    if (goal) {
         if (goalSection) goalSection.style.display = 'block';
-        renderSavingsGoal(data.savings_goal);
+        renderSavingsGoal(goal);
     } else if (goalSection) {
         goalSection.style.display = 'none';
     }
 
     // Transactions
-    renderTransactions(data.recent_transactions);
+    renderTransactions(transactions);
 
     // Loans
-    renderLoans(data.active_loans);
+    renderLoans(loans);
 
     // Notes
-    renderNotes(data.recent_notes);
+    renderNotes(notes);
 
     // Notification dot
     const notifDot = document.getElementById('notifDot') || document.querySelector('.header-btn .dot');
     if (notifDot) {
-        notifDot.style.display = data.unread_notifications > 0 ? 'block' : 'none';
+        notifDot.style.display = (data.unread_notifications || 0) > 0 ? 'block' : 'none';
     }
 
     // Chart — uses real transaction data, no fake history
-    updateMetricsChart(data.member.savings_balance, data.recent_transactions);
+    updateMetricsChart(member.savings_balance, transactions);
 }
 
 function renderSavingsGoal(goal) {
@@ -407,7 +432,7 @@ function renderNotes(notes) {
     }
 }
 
-function updateMetricsChart(currentBalance, transactions) {
+function updateMetricsChart(safeBalance, transactions) {
     const canvas = document.getElementById('metricsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
@@ -416,6 +441,8 @@ function updateMetricsChart(currentBalance, transactions) {
     }
 
     const ctx = canvas.getContext('2d');
+    const safeBalance = Number(safeBalance) || 0;
+    const safeTx = Array.isArray(transactions) ? transactions : [];
 
     // Build real chart data from transactions — no fake history
     let labels = [];
@@ -424,7 +451,7 @@ function updateMetricsChart(currentBalance, transactions) {
     if (transactions && transactions.length > 0) {
         // Group by month and sum amounts (deposits positive, withdrawals negative)
         const monthly = {};
-        transactions.slice().reverse().forEach(tx => {
+        safeTx.slice().reverse().forEach(tx => {
             const d = new Date(tx.created_at);
             const key = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
             if (!monthly[key]) monthly[key] = 0;
@@ -438,7 +465,7 @@ function updateMetricsChart(currentBalance, transactions) {
     // If no transaction history, show a single "Current Balance" point
     if (labels.length === 0) {
         labels = ['Current'];
-        dataPoints = [currentBalance];
+        dataPoints = [safeBalance];
     }
 
     metricsChartInstance = new Chart(ctx, {
@@ -773,7 +800,7 @@ function renderTransactionHistory(transactions) {
     }
 
     const grouped = {};
-    transactions.forEach(tx => {
+    safeTx.forEach(tx => {
         const date = new Date(tx.created_at);
         const monthKey = date.toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
         if (!grouped[monthKey]) grouped[monthKey] = [];
@@ -817,7 +844,7 @@ function downloadReport() {
     }
 
     const rows = [['Date', 'Type', 'Description', 'Amount (MWK)']];
-    transactions.forEach(tx => {
+    safeTx.forEach(tx => {
         rows.push([
             new Date(tx.created_at).toISOString().slice(0, 10),
             formatType(tx.type),
@@ -1005,8 +1032,9 @@ async function loadProfile() {
         const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
             headers: getAuthHeaders()
         });
-        if (!res.ok) throw new Error('Failed to load profile');
         const data = await res.json();
+        console.log('Profile raw response:', data);
+        if (!res.ok) throw new Error(data.detail || 'Failed to load profile');
         const member = data.member || data;
 
         const displayName = document.getElementById('displayName');
@@ -1027,9 +1055,9 @@ async function loadProfile() {
         const profileCreditScore = document.getElementById('profileCreditScore');
         if (profileCreditScore) profileCreditScore.textContent = member.credit_score;
         const profileLoanCount = document.getElementById('profileLoanCount');
-        if (profileLoanCount) profileLoanCount.textContent = data.active_loans ? data.active_loans.length : member.total_shares;
+        if (profileLoanCount) profileLoanCount.textContent = loans ? loans.length : member.total_shares;
 
-        updateMetricsChart(member.savings_balance, data.recent_transactions);
+        updateMetricsChart(member.savings_balance, transactions);
     } catch (err) {
         showToast(err.message, 'error');
     }
