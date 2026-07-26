@@ -131,7 +131,7 @@ function setLoading(button, loading = true, text = 'Loading...') {
 async function loadDashboard() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/dashboard`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load dashboard');
