@@ -774,6 +774,24 @@ def update_member(member_id: int, update: MemberUpdate, db: Session = Depends(ge
     db.refresh(member)
     return member
 
+
+@app.put("/api/members/{member_id}/password")
+def change_password(member_id: int, request: PasswordChangeRequest, db: Session = Depends(get_db)):
+    """Allow a member to change their own password."""
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if not member.password_hash or not verify_password(request.current_password, member.password_hash):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    if request.new_password != request.confirm_password:
+        raise HTTPException(status_code=400, detail="New password and confirmation do not match")
+
+    member.password_hash = hash_password(request.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
 @app.delete("/api/members/{member_id}")
 def deactivate_member(member_id: int, db: Session = Depends(get_db)):
     member = db.query(Member).filter(Member.id == member_id).first()
@@ -907,6 +925,43 @@ def make_withdrawal(member_id: int, request: WithdrawRequest, db: Session = Depe
 
     db.commit()
     return {"message": "Withdrawal successful", "new_balance": member.savings_balance, "shares": member.total_shares}
+
+
+@app.put("/api/members/{member_id}/balance")
+def update_member_balance(member_id: int, amount: float, reason: str = "Manual adjustment", admin_id: int = None, db: Session = Depends(get_db)):
+    """Admin/Treasurer endpoint to manually update a member's balance (e.g. after a cash deposit)."""
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Optional: verify admin/treasurer privileges
+    if admin_id:
+        admin = db.query(Member).filter(Member.id == admin_id).first()
+        if not admin or admin.role not in [MemberRole.ADMIN, MemberRole.TREASURER]:
+            raise HTTPException(status_code=403, detail="Only admin or treasurer can adjust balances")
+
+    old_balance = member.savings_balance
+    member.savings_balance += amount
+    member.total_shares = int(member.savings_balance / (member.group.share_value if member.group else 100))
+
+    tx_type = TransactionType.DEPOSIT if amount >= 0 else TransactionType.WITHDRAWAL
+    transaction = Transaction(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=tx_type,
+        amount=abs(amount),
+        description=reason
+    )
+    db.add(transaction)
+
+    db.commit()
+    return {
+        "message": "Balance updated",
+        "old_balance": old_balance,
+        "new_balance": member.savings_balance,
+        "shares": member.total_shares,
+        "adjustment": amount
+    }
 
 # ==================== LOAN ENDPOINTS ====================
 
@@ -1193,6 +1248,36 @@ def send_message(member_id: int, message: ChatMessageCreate, db: Session = Depen
     resp = ChatMessageResponse.model_validate(db_message)
     resp.member_name = member.full_name
     return resp
+
+
+@app.get("/api/groups/{group_id}/messages/admin")
+def get_admin_group_messages(group_id: int, db: Session = Depends(get_db)):
+    """Admin endpoint to view all messages sent by members in a group (excludes admin replies)."""
+    messages = db.query(ChatMessage).filter(
+        ChatMessage.group_id == group_id,
+        ChatMessage.sender == "member"
+    ).order_by(ChatMessage.created_at.desc()).all()
+
+    result = []
+    for m in messages:
+        resp = ChatMessageResponse.model_validate(m)
+        resp.member_name = m.member.full_name if m.member else "Unknown"
+        result.append(resp)
+    return result
+
+@app.get("/api/groups/{group_id}/messages/all")
+def get_all_group_messages(group_id: int, db: Session = Depends(get_db)):
+    """Admin endpoint to view the full conversation history in a group (both member and admin messages)."""
+    messages = db.query(ChatMessage).filter(
+        ChatMessage.group_id == group_id
+    ).order_by(ChatMessage.created_at.asc()).all()
+
+    result = []
+    for m in messages:
+        resp = ChatMessageResponse.model_validate(m)
+        resp.member_name = m.member.full_name if m.member else "Unknown"
+        result.append(resp)
+    return result
 
 # ==================== REPORT ENDPOINTS ====================
 
