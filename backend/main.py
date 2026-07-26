@@ -7,7 +7,6 @@ import bcrypt
 from datetime import datetime, timedelta
 from typing import List, Optional
 import enum
-import re
 import uvicorn
 
 # ==================== PASSWORD HASHING ====================
@@ -133,7 +132,7 @@ class Transaction(Base):
     member_id = Column(Integer, ForeignKey("members.id"))
     type = Column(Enum(TransactionType))
     amount = Column(Float)
-    currency = Column(String, default="USD")
+    currency = Column(String, default="MWK")
     method = Column(Enum(PaymentMethod), nullable=True)
     description = Column(String, nullable=True)
     reference = Column(String, nullable=True)
@@ -311,7 +310,7 @@ class LoginResponse(BaseModel):
 class TransactionBase(BaseModel):
     type: TransactionType
     amount: float = Field(gt=0)
-    currency: str = "USD"
+    currency: str = "MWK"
     method: Optional[PaymentMethod] = None
     description: Optional[str] = None
     reference: Optional[str] = None
@@ -457,6 +456,31 @@ class GroupSummaryResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# --- Developer Control Schemas ---
+class AdminGroupOverview(BaseModel):
+    id: int
+    group_id: str
+    name: str
+    interest_rate: float
+    share_value: float
+    cycle_duration_months: int
+    created_at: datetime
+    member_count: int
+    total_savings: float
+    active_loans_count: int
+    admin_name: Optional[str] = "N/A"
+    admin_identifier: Optional[str] = "N/A"
+
+    class Config:
+        from_attributes = True
+
+class DeveloperDashboardStats(BaseModel):
+    total_groups: int
+    total_registered_members: int
+    total_platform_savings: float
+    total_active_loans: int
+    groups: List[AdminGroupOverview]
+
 # ==================== DEPENDENCIES ====================
 def get_db():
     db = SessionLocal()
@@ -503,7 +527,7 @@ def seed_database(db: Session):
         interest_rate=5.2,
         share_value=100.0,
         cycle_duration_months=12,
-        created_at=datetime(2023, 3, 15)
+        created_at=datetime(2025, 3, 15)
     )
     db.add(group)
     db.flush()
@@ -520,7 +544,7 @@ def seed_database(db: Session):
         savings_balance=4250.00,
         credit_score=847,
         total_shares=42,
-        joined_at=datetime(2023, 3, 15),
+        joined_at=datetime(2025, 3, 15),
         is_active=True
     )
     db.add(admin)
@@ -538,7 +562,7 @@ def seed_database(db: Session):
         savings_balance=2100.00,
         credit_score=720,
         total_shares=21,
-        joined_at=datetime(2023, 6, 10),
+        joined_at=datetime(2025, 6, 10),
         is_active=True
     )
     db.add(member2)
@@ -554,22 +578,20 @@ def seed_database(db: Session):
     db.add(goal)
 
     transactions = [
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=150.00, currency="USD", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 7, 18)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=200.00, currency="USD", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money - Airtel", created_at=datetime(2026, 7, 1)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.INTEREST, amount=18.20, currency="USD", description="Monthly interest payment", created_at=datetime(2026, 6, 30)),
+        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=150.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 7, 18)),
+        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=200.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money - Airtel", created_at=datetime(2026, 7, 1)),
+        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.INTEREST, amount=18.20, currency="MWK", description="Monthly interest payment", created_at=datetime(2026, 6, 30)),
         Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.WITHDRAWAL, amount=100.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money", created_at=datetime(2026, 6, 20)),
         Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=200.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money", created_at=datetime(2026, 6, 15)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.LOAN_REPAYMENT, amount=147.00, currency="USD", description="Loan #L-1-2024-0042", created_at=datetime(2026, 5, 28)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=250.00, currency="USD", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 5, 15)),
-        Transaction(group_id=group.id, member_id=member2.id, type=TransactionType.DEPOSIT, amount=300.00, currency="USD", method=PaymentMethod.TNM_MPAMBA, description="Monthly contribution", created_at=datetime(2026, 7, 10)),
+        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.LOAN_REPAYMENT, amount=147.00, currency="MWK", description="Loan #L-1-2024-0042", created_at=datetime(2026, 5, 28)),
+        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=250.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 5, 15)),
+        Transaction(group_id=group.id, member_id=member2.id, type=TransactionType.DEPOSIT, amount=300.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Monthly contribution", created_at=datetime(2026, 7, 10)),
     ]
     db.add_all(transactions)
 
     loans = [
-        Loan(group_id=group.id, member_id=admin.id, loan_number="L-1-2024-0042", title="Farm Equipment Loan", purpose=LoanPurpose.FARM_EQUIPMENT, principal=800.00, interest_rate=10.0, total_paid=880.00, status=LoanStatus.PAID_OFF, duration_months=12, monthly_payment=73.33, paid_off_at=datetime(2025, 3, 15), created_at=datetime(2024, 3, 15)),
-        Loan(group_id=group.id, member_id=admin.id, loan_number="L-1-2024-0018", title="School Fees Loan", purpose=LoanPurpose.SCHOOL_FEES, principal=500.00, interest_rate=12.0, total_paid=520.00, status=LoanStatus.PAID_OFF, duration_months=6, monthly_payment=86.67, paid_off_at=datetime(2024, 11, 20), created_at=datetime(2024, 5, 20)),
-        Loan(group_id=group.id, member_id=admin.id, loan_number="L-1-2024-0005", title="Business Startup", purpose=LoanPurpose.BUSINESS, principal=300.00, interest_rate=12.0, total_paid=309.00, status=LoanStatus.PAID_OFF, duration_months=6, monthly_payment=51.50, paid_off_at=datetime(2024, 6, 10), created_at=datetime(2024, 1, 10)),
-        Loan(group_id=group.id, member_id=member2.id, loan_number="L-1-2024-0023", title="Medical Emergency", purpose=LoanPurpose.MEDICAL, principal=400.00, interest_rate=8.0, total_paid=200.00, status=LoanStatus.ACTIVE, duration_months=6, monthly_payment=72.00, due_date=datetime(2024, 12, 1), created_at=datetime(2024, 6, 1)),
+        Loan(group_id=group.id, member_id=admin.id, loan_number="L-1-2025-0042", title="Farm Equipment Loan", purpose=LoanPurpose.FARM_EQUIPMENT, principal=800.00, interest_rate=10.0, total_paid=880.00, status=LoanStatus.PAID_OFF, duration_months=12, monthly_payment=73.33, paid_off_at=datetime(2026, 3, 15), created_at=datetime(2025, 3, 15)),
+        Loan(group_id=group.id, member_id=member2.id, loan_number="L-1-2026-0023", title="Medical Emergency", purpose=LoanPurpose.MEDICAL, principal=400.00, interest_rate=8.0, total_paid=200.00, status=LoanStatus.ACTIVE, duration_months=6, monthly_payment=72.00, due_date=datetime(2026, 12, 1), created_at=datetime(2026, 6, 1)),
     ]
     db.add_all(loans)
 
@@ -580,7 +602,7 @@ def seed_database(db: Session):
     db.add_all(notes)
 
     notifications = [
-        Notification(group_id=group.id, member_id=admin.id, type=NotificationType.DEPOSIT, title="Deposit Successful", description="$150.00 has been added to your savings", created_at=datetime.now() - timedelta(hours=2)),
+        Notification(group_id=group.id, member_id=admin.id, type=NotificationType.DEPOSIT, title="Deposit Successful", description="MWK 150.00 has been added to your savings", created_at=datetime.now() - timedelta(hours=2)),
     ]
     db.add_all(notifications)
 
@@ -632,6 +654,8 @@ def register_group(request: GroupRegistrationRequest, db: Session = Depends(get_
         role=MemberRole.ADMIN,
         savings_balance=0.0,
         credit_score=700,
+        total_shares=0,
+        is_active=True,
         joined_at=datetime.utcnow()
     )
     db.add(admin)
@@ -657,7 +681,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     if len(matches) > 1:
         raise HTTPException(
             status_code=409,
-            detail="More than one member with this name exists in the group. Please contact your admin to resolve the naming conflict."
+            detail="More than one member with this name exists in the group. Please contact your admin."
         )
 
     member = matches[0]
@@ -691,22 +715,22 @@ def _build_dashboard_payload(member_id: int, db: Session) -> DashboardResponse:
 
     recent_transactions = db.query(Transaction).filter(Transaction.member_id == member_id)\
         .order_by(Transaction.created_at.desc()).limit(10).all()
-        
+
     active_loans = db.query(Loan).filter(
         Loan.member_id == member_id, 
         Loan.status == LoanStatus.ACTIVE
     ).all()
-    
+
     savings_goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
-    
+
     recent_notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
         .order_by(DailyNote.note_date.desc()).limit(5).all()
-        
+
     unread_notifications = db.query(Notification).filter(
         Notification.member_id == member_id, 
         Notification.is_read == False
     ).count()
-    
+
     group_members = db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).all()
 
     group_resp = GroupResponse.model_validate(group)
@@ -790,9 +814,8 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
         top_members=[MemberResponse.model_validate(m) for m in top_members]
     )
 
-# ==================== ADDED TAB ENDPOINTS ====================
+# ==================== TRANSACTION & CHAT ENDPOINTS ====================
 
-# --- 1. History / Transactions Tab ---
 @app.get("/api/members/{member_id}/transactions", response_model=List[TransactionResponse])
 @app.get("/members/{member_id}/transactions", response_model=List[TransactionResponse])
 def get_member_transactions(member_id: int, db: Session = Depends(get_db)):
@@ -806,7 +829,7 @@ def create_transaction(member_id: int, tx: TransactionCreate, db: Session = Depe
     member = db.query(Member).filter(Member.id == member_id).first()
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
-        
+
     db_tx = Transaction(
         group_id=member.group_id,
         member_id=member_id,
@@ -817,218 +840,48 @@ def create_transaction(member_id: int, tx: TransactionCreate, db: Session = Depe
         description=tx.description,
         reference=tx.reference
     )
-    
+
     if tx.type == TransactionType.DEPOSIT:
         member.savings_balance += tx.amount
     elif tx.type == TransactionType.WITHDRAWAL:
         if member.savings_balance < tx.amount:
             raise HTTPException(status_code=400, detail="Insufficient funds")
         member.savings_balance -= tx.amount
-        
+
     db.add(db_tx)
     db.commit()
     db.refresh(db_tx)
     return TransactionResponse.model_validate(db_tx)
 
-# --- 2. Chat Tab ---
 @app.get("/api/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
 @app.get("/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
 def get_chat_messages(group_id: int, db: Session = Depends(get_db)):
     messages = db.query(ChatMessage).filter(ChatMessage.group_id == group_id)\
         .order_by(ChatMessage.created_at.asc()).all()
-    
-    res = []
-    for m in messages:
-        msg_data = ChatMessageResponse.model_validate(m)
-        if m.member:
-            msg_data.member_name = m.member.full_name
-        res.append(msg_data)
-    return res
-# --- Fix GET /members/{member_id}/messages ---
-@app.get("/members/{member_id}/messages", response_model=List[ChatMessageResponse])
-@app.get("/api/members/{member_id}/messages", response_model=List[ChatMessageResponse])
-def get_member_messages_alias(member_id: int, db: Session = Depends(get_db)):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-    
-    messages = db.query(ChatMessage).filter(ChatMessage.group_id == member.group_id)\
-        .order_by(ChatMessage.created_at.asc()).all()
-    
-    res = []
-    for m in messages:
-        msg_data = ChatMessageResponse.model_validate(m)
-        if m.member:
-            msg_data.member_name = m.member.full_name
-        res.append(msg_data)
-    return res
+    return [ChatMessageResponse.model_validate(m) for m in messages]
 
-# --- Fix GET /members/{member_id} (Returns pure Member Profile) ---
-@app.get("/members/{member_id}", response_model=MemberProfileResponse)
-def get_member_profile_only(member_id: int, db: Session = Depends(get_db)):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-    
-    group = db.query(Group).filter(Group.id == member.group_id).first()
-    profile = MemberProfileResponse.model_validate(member)
-    profile.group_name = group.name if group else None
-    return profile
-
-# --- Fix POST /members/{member_id}/deposit ---
-class DepositRequest(BaseModel):
-    amount: float = Field(gt=0)
-    method: Optional[PaymentMethod] = PaymentMethod.AIRTEL_MONEY
-    currency: str = "MWK"
-    description: Optional[str] = "Deposit"
-
-@app.post("/members/{member_id}/deposit", response_model=TransactionResponse)
-@app.post("/api/members/{member_id}/deposit", response_model=TransactionResponse)
-def member_deposit(member_id: int, req: DepositRequest, db: Session = Depends(get_db)):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    # Update balance
-    member.savings_balance += req.amount
-
-    # Create transaction log
-    db_tx = Transaction(
-        group_id=member.group_id,
-        member_id=member.id,
-        type=TransactionType.DEPOSIT,
-        amount=req.amount,
-        currency=req.currency,
-        method=req.method,
-        description=req.description or "Member Deposit"
-    )
-    db.add(db_tx)
-    db.commit()
-    db.refresh(db_tx)
-    return TransactionResponse.model_validate(db_tx)
-@app.post("/api/groups/{group_id}/messages", response_model=ChatMessageResponse)
-@app.post("/groups/{group_id}/messages", response_model=ChatMessageResponse)
-def create_chat_message(group_id: int, msg: ChatMessageCreate, member_id: int, db: Session = Depends(get_db)):
-    db_msg = ChatMessage(
-        group_id=group_id,
-        member_id=member_id,
-        sender=msg.sender,
-        text=msg.text
-    )
-    db.add(db_msg)
-    db.commit()
-    db.refresh(db_msg)
-    return ChatMessageResponse.model_validate(db_msg)
-
-# --- 3. Loans Tab ---
-@app.get("/api/members/{member_id}/loans", response_model=List[LoanResponse])
-@app.get("/members/{member_id}/loans", response_model=List[LoanResponse])
-def get_member_loans(member_id: int, db: Session = Depends(get_db)):
-    loans = db.query(Loan).filter(Loan.member_id == member_id).all()
-    return [LoanResponse.model_validate(l) for l in loans]
-
-@app.post("/api/members/{member_id}/loans", response_model=LoanResponse)
-@app.post("/members/{member_id}/loans", response_model=LoanResponse)
-def apply_for_loan(member_id: int, loan: LoanCreate, db: Session = Depends(get_db)):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    loan_num = generate_loan_number(db, member.group_id)
-    monthly = (loan.principal * (1 + loan.interest_rate / 100)) / loan.duration_months
-
-    db_loan = Loan(
-        group_id=member.group_id,
-        member_id=member_id,
-        loan_number=loan_num,
-        title=loan.title,
-        purpose=loan.purpose,
-        principal=loan.principal,
-        interest_rate=loan.interest_rate,
-        duration_months=loan.duration_months,
-        monthly_payment=round(monthly, 2),
-        status=LoanStatus.PENDING
-    )
-    db.add(db_loan)
-    db.commit()
-    db.refresh(db_loan)
-    return LoanResponse.model_validate(db_loan)
-
-# --- 4. Notes Tab ---
-@app.get("/api/members/{member_id}/notes", response_model=List[DailyNoteResponse])
-@app.get("/members/{member_id}/notes", response_model=List[DailyNoteResponse])
-def get_member_notes(member_id: int, db: Session = Depends(get_db)):
-    notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
-        .order_by(DailyNote.note_date.desc()).all()
-    return [DailyNoteResponse.model_validate(n) for n in notes]
-
-@app.post("/api/members/{member_id}/notes", response_model=DailyNoteResponse)
-@app.post("/members/{member_id}/notes", response_model=DailyNoteResponse)
-def create_note(member_id: int, note: DailyNoteCreate, db: Session = Depends(get_db)):
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-
-    db_note = DailyNote(
-        group_id=member.group_id,
-        member_id=member_id,
-        text=note.text,
-        mood=note.mood
-    )
-    db.add(db_note)
-    db.commit()
-    db.refresh(db_note)
-    return DailyNoteResponse.model_validate(db_note)
-# ==================== ADMIN / DEVELOPER CONTROL ENDPOINTS ====================
-
-class AdminGroupOverview(BaseModel):
-    id: int
-    group_id: str
-    name: str
-    interest_rate: float
-    share_value: float
-    cycle_duration_months: int
-    created_at: datetime
-    member_count: int
-    total_savings: float
-    active_loans_count: int
-    admin_name: Optional[str] = "N/A"
-    admin_identifier: Optional[str] = "N/A"
-
-    class Config:
-        from_attributes = True
-
-class DeveloperDashboardStats(BaseModel):
-    total_groups: int
-    total_registered_members: int
-    total_platform_savings: float
-    total_active_loans: int
-    groups: List[AdminGroupOverview]
+# ==================== DEVELOPER CONTROL ENDPOINT ====================
 
 @app.get("/api/admin/developer-overview", response_model=DeveloperDashboardStats)
 @app.get("/admin/developer-overview", response_model=DeveloperDashboardStats)
 def get_developer_control_overview(db: Session = Depends(get_db)):
-    """Developer route to inspect registered groups and system-wide metrics"""
+    """Developer endpoint to list all groups, system-wide totals, and metadata."""
     groups = db.query(Group).order_by(Group.created_at.desc()).all()
-    
+
     group_summaries = []
     platform_savings = 0.0
     platform_members = 0
     platform_loans = 0
 
     for g in groups:
-        # Get active group members
         members = db.query(Member).filter(Member.group_id == g.id, Member.is_active == True).all()
         m_count = len(members)
-        
-        # Calculate group financial totals
+
         g_savings = sum(m.savings_balance or 0.0 for m in members)
         g_loans = db.query(Loan).filter(Loan.group_id == g.id, Loan.status == LoanStatus.ACTIVE).count()
-        
-        # Locate group admin contact
+
         admin_member = db.query(Member).filter(Member.group_id == g.id, Member.role == MemberRole.ADMIN).first()
 
-        # Update global platform tallies
         platform_savings += g_savings
         platform_members += m_count
         platform_loans += g_loans
@@ -1057,5 +910,6 @@ def get_developer_control_overview(db: Session = Depends(get_db)):
         total_active_loans=platform_loans,
         groups=group_summaries
     )
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
