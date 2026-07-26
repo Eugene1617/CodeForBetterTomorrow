@@ -1,6 +1,7 @@
+# main.py
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Enum, UniqueConstraint, func
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from pydantic import BaseModel, Field, EmailStr
 import bcrypt
@@ -73,7 +74,7 @@ class NotificationType(str, enum.Enum):
     CREDIT_SCORE = "credit_score"
     LOAN_DUE = "loan_due"
     LOAN_APPROVED = "loan_approved"
-    LOAN_REQUESTED = "loan_requested"
+    LOAN_REPAYMENT = "loan_repayment"
     GROUP_INVITE = "group_invite"
     GENERAL = "general"
 
@@ -172,10 +173,10 @@ class SavingsGoal(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     member_id = Column(Integer, ForeignKey("members.id"), unique=True)
-    name = Column(String, default="New Farm Equipment")
-    target_amount = Column(Float, default=6000.0)
+    name = Column(String, nullable=False)
+    target_amount = Column(Float, nullable=False)
     current_amount = Column(Float, default=0.0)
-    icon = Column(String, default="🚜")
+    icon = Column(String, nullable=True)
 
     member = relationship("Member", back_populates="savings_goal")
 
@@ -224,6 +225,7 @@ class ChatMessage(Base):
 Base.metadata.create_all(bind=engine)
 
 # ==================== PYDANTIC SCHEMAS ====================
+
 class GroupBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     interest_rate: float = Field(default=5.0, ge=1.0, le=100.0)
@@ -244,7 +246,6 @@ class GroupResponse(GroupBase):
     group_id: str
     created_at: datetime
     member_count: int = 0
-    total_members: int = 0
     total_savings: float = 0.0
 
     class Config:
@@ -275,7 +276,7 @@ class MemberResponse(MemberBase):
     group_id: int
     role: MemberRole
     joined_at: datetime
-    savings_balance: float = 0.0
+    savings_balance: float
     credit_score: int
     total_shares: int
     is_active: bool
@@ -331,10 +332,6 @@ class TransactionResponse(TransactionBase):
     class Config:
         from_attributes = True
 
-class BalanceTransactionResponse(TransactionResponse):
-    """Transaction response that also reports the member's resulting balance."""
-    new_balance: float
-
 class LoanBase(BaseModel):
     title: str
     purpose: LoanPurpose
@@ -362,10 +359,10 @@ class LoanResponse(LoanBase):
         from_attributes = True
 
 class SavingsGoalBase(BaseModel):
-    name: str
-    target_amount: float = Field(gt=0)
-    current_amount: float = Field(ge=0)
-    icon: str = "🚜"
+    name: str = Field(..., min_length=1)
+    target_amount: float = Field(..., gt=0)
+    current_amount: float = Field(default=0.0, ge=0)
+    icon: Optional[str] = None
 
 class SavingsGoalCreate(SavingsGoalBase):
     pass
@@ -463,66 +460,40 @@ class GroupSummaryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# --- Developer Control Schemas ---
-class AdminGroupOverview(BaseModel):
-    id: int
-    group_id: str
-    name: str
-    interest_rate: float
-    share_value: float
-    cycle_duration_months: int
-    created_at: datetime
-    member_count: int
-    total_savings: float
-    active_loans_count: int
-    admin_name: Optional[str] = "N/A"
-    admin_identifier: Optional[str] = "N/A"
-
-    class Config:
-        from_attributes = True
-
-class DeveloperDashboardStats(BaseModel):
-    total_groups: int
-    total_registered_members: int
-    total_platform_savings: float
-    total_active_loans: int
-    groups: List[AdminGroupOverview]
-
-# --- Request bodies for member-scoped endpoints ---
 class DepositRequest(BaseModel):
     amount: float = Field(gt=0)
-    method: Optional[str] = "cash"
+    method: PaymentMethod
     phone: Optional[str] = None
     pin: Optional[str] = None
 
 class WithdrawRequest(BaseModel):
     amount: float = Field(gt=0)
-    method: Optional[str] = "cash"
+    method: PaymentMethod
     phone: Optional[str] = None
+
+class LoanRequest(BaseModel):
+    amount: float = Field(gt=0)
+    purpose: LoanPurpose
+    duration_months: int = Field(ge=3, le=24)
+
+class LoanRepaymentRequest(BaseModel):
+    amount: float = Field(gt=0)
+
+class LoanApprovalRequest(BaseModel):
+    approver_id: int
 
 class PasswordChangeRequest(BaseModel):
     current_password: str
-    new_password: str = Field(..., min_length=8)
+    new_password: str = Field(min_length=8)
+    confirm_password: str
 
-# Maps the short method codes the frontend uses to the PaymentMethod enum
-METHOD_ALIASES = {
-    "tnm": PaymentMethod.TNM_MPAMBA,
-    "airtel": PaymentMethod.AIRTEL_MONEY,
-    "bank": PaymentMethod.NATIONAL_BANK,
-    "mtn": PaymentMethod.AIRTEL_MONEY,  # legacy UI option, treated as mobile money
-    "cash": PaymentMethod.CASH,
-    "tnm_mpamba": PaymentMethod.TNM_MPAMBA,
-    "airtel_money": PaymentMethod.AIRTEL_MONEY,
-    "national_bank": PaymentMethod.NATIONAL_BANK,
-}
-
-def resolve_method(method: Optional[str]) -> PaymentMethod:
-    if not method:
-        return PaymentMethod.CASH
-    resolved = METHOD_ALIASES.get(method.lower())
-    if not resolved:
-        raise HTTPException(status_code=400, detail=f"Unknown payment method '{method}'")
-    return resolved
+class InviteMemberRequest(BaseModel):
+    full_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    identifier: Optional[str] = None
+    role: MemberRole = MemberRole.MEMBER
+    initial_password: str = Field(..., min_length=8, description="Temporary password set by the admin/treasurer; the member can change it after logging in")
 
 # ==================== DEPENDENCIES ====================
 def get_db():
@@ -544,26 +515,11 @@ def generate_loan_number(db: Session, group_id: int) -> str:
     count = db.query(Loan).filter(Loan.group_id == group_id).count() + 1
     return f"L-{group_id}-{datetime.now().year}-{count:04d}"
 
-def get_member_or_404(member_id: int, db: Session) -> Member:
-    member = db.query(Member).filter(Member.id == member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
-    return member
-
-def notify(db: Session, member: Member, ntype: NotificationType, title: str, description: str):
-    db.add(Notification(
-        group_id=member.group_id,
-        member_id=member.id,
-        type=ntype,
-        title=title,
-        description=description
-    ))
-
 # ==================== FASTAPI APP ====================
 app = FastAPI(
     title="Titukulane+ API",
     description="Village Savings & Loan Association Backend with Group Support",
-    version="2.1.0"
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -574,118 +530,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==================== SEED DATA ====================
-def seed_database(db: Session):
-    if db.query(Group).first():
-        return
-
-    group = Group(
-        group_id="GRP-2026-0001",
-        name="Sunrise Savings Group",
-        interest_rate=5.2,
-        share_value=100.0,
-        cycle_duration_months=12,
-        created_at=datetime(2025, 3, 15)
-    )
-    db.add(group)
-    db.flush()
-
-    admin = Member(
-        member_id="M-1-0001",
-        group_id=group.id,
-        full_name="John Doe",
-        email="john.doe@example.com",
-        phone="+265 712 345 678",
-        identifier="john.doe@example.com",
-        password_hash=hash_password("password123"),
-        role=MemberRole.ADMIN,
-        savings_balance=4250.00,
-        credit_score=847,
-        total_shares=42,
-        joined_at=datetime(2025, 3, 15),
-        is_active=True
-    )
-    db.add(admin)
-    db.flush()
-
-    member2 = Member(
-        member_id="M-1-0002",
-        group_id=group.id,
-        full_name="Chimwemwe Banda",
-        email="chimwemwe@example.com",
-        phone="+265 991 234 567",
-        identifier="chimwemwe@example.com",
-        password_hash=hash_password("password123"),
-        role=MemberRole.MEMBER,
-        savings_balance=2100.00,
-        credit_score=720,
-        total_shares=21,
-        joined_at=datetime(2025, 6, 10),
-        is_active=True
-    )
-    db.add(member2)
-    db.flush()
-
-    goal = SavingsGoal(
-        member_id=admin.id,
-        name="New Farm Equipment",
-        target_amount=6000.0,
-        current_amount=4250.0,
-        icon="🚜"
-    )
-    db.add(goal)
-
-    transactions = [
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=150.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 7, 18)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=200.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money - Airtel", created_at=datetime(2026, 7, 1)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.INTEREST, amount=18.20, currency="MWK", description="Monthly interest payment", created_at=datetime(2026, 6, 30)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.WITHDRAWAL, amount=100.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money", created_at=datetime(2026, 6, 20)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=200.00, currency="MWK", method=PaymentMethod.AIRTEL_MONEY, description="Mobile Money", created_at=datetime(2026, 6, 15)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.LOAN_REPAYMENT, amount=147.00, currency="MWK", description="Loan #L-1-2024-0042", created_at=datetime(2026, 5, 28)),
-        Transaction(group_id=group.id, member_id=admin.id, type=TransactionType.DEPOSIT, amount=250.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Mobile Money - TNM", created_at=datetime(2026, 5, 15)),
-        Transaction(group_id=group.id, member_id=member2.id, type=TransactionType.DEPOSIT, amount=300.00, currency="MWK", method=PaymentMethod.TNM_MPAMBA, description="Monthly contribution", created_at=datetime(2026, 7, 10)),
-    ]
-    db.add_all(transactions)
-
-    loans = [
-        Loan(group_id=group.id, member_id=admin.id, loan_number="L-1-2025-0042", title="Farm Equipment Loan", purpose=LoanPurpose.FARM_EQUIPMENT, principal=800.00, interest_rate=10.0, total_paid=880.00, status=LoanStatus.PAID_OFF, duration_months=12, monthly_payment=73.33, paid_off_at=datetime(2026, 3, 15), created_at=datetime(2025, 3, 15)),
-        Loan(group_id=group.id, member_id=member2.id, loan_number="L-1-2026-0023", title="Medical Emergency", purpose=LoanPurpose.MEDICAL, principal=400.00, interest_rate=8.0, total_paid=200.00, status=LoanStatus.ACTIVE, duration_months=6, monthly_payment=72.00, due_date=datetime(2026, 12, 1), created_at=datetime(2026, 6, 1)),
-    ]
-    db.add_all(loans)
-
-    notes = [
-        DailyNote(group_id=group.id, member_id=admin.id, note_date=datetime(2026, 7, 18), text="Made my monthly deposit today. The mobile money integration is working smoothly now.", mood=Mood.GOOD),
-        DailyNote(group_id=group.id, member_id=admin.id, note_date=datetime(2026, 7, 15), text="Attended the village bank meeting. We discussed new loan terms.", mood=Mood.GREAT),
-    ]
-    db.add_all(notes)
-
-    notifications = [
-        Notification(group_id=group.id, member_id=admin.id, type=NotificationType.DEPOSIT, title="Deposit Successful", description="MWK 150.00 has been added to your savings", created_at=datetime.now() - timedelta(hours=2)),
-    ]
-    db.add_all(notifications)
-
-    messages = [
-        ChatMessage(group_id=group.id, member_id=admin.id, sender="admin", text="Hello! How can I help you today?", created_at=datetime.now() - timedelta(hours=3)),
-    ]
-    db.add_all(messages)
-
-    db.commit()
-
-@app.on_event("startup")
-def startup_event():
-    db = SessionLocal()
-    try:
-        seed_database(db)
-    finally:
-        db.close()
-
 # ==================== AUTH & GROUP REGISTRATION ====================
 
 @app.post("/api/auth/register-group", response_model=GroupResponse)
 def register_group(request: GroupRegistrationRequest, db: Session = Depends(get_db)):
-    existing = db.query(Member).filter(Member.identifier == request.identifier).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Email or phone number already registered")
+    """Create a new savings group with admin/treasurer account"""
 
     existing_group = db.query(Group).filter(Group.name.ilike(request.group_name.strip())).first()
     if existing_group:
@@ -693,7 +542,7 @@ def register_group(request: GroupRegistrationRequest, db: Session = Depends(get_
 
     group = Group(
         group_id=generate_group_id(db),
-        name=request.group_name,
+        name=request.group_name.strip(),
         interest_rate=request.interest_rate,
         share_value=100.0,
         cycle_duration_months=12
@@ -704,36 +553,35 @@ def register_group(request: GroupRegistrationRequest, db: Session = Depends(get_
     admin = Member(
         member_id=generate_member_id(db, group.id),
         group_id=group.id,
-        full_name=request.admin_name,
-        identifier=request.identifier,
+        full_name=request.admin_name.strip(),
+        identifier=request.identifier.strip() if request.identifier else None,
         email=request.identifier if "@" in request.identifier else None,
         phone=request.identifier if "@" not in request.identifier else None,
         password_hash=hash_password(request.password),
         role=MemberRole.ADMIN,
         savings_balance=0.0,
         credit_score=700,
-        total_shares=0,
-        is_active=True,
         joined_at=datetime.utcnow()
     )
     db.add(admin)
     db.commit()
     db.refresh(group)
 
-    resp = GroupResponse.model_validate(group)
-    resp.member_count = 1
-    resp.total_members = 1
-    return resp
+    return group
 
 @app.post("/api/auth/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    group = db.query(Group).filter(Group.name.ilike(request.group_name.strip())).first()
+    """Login with member name, group name, and password"""
+
+    group = db.query(Group).filter(
+        func.lower(func.trim(Group.name)) == request.group_name.strip().lower()
+    ).first()
     if not group:
         raise HTTPException(status_code=401, detail="Group not found")
 
     matches = db.query(Member).filter(
         Member.group_id == group.id,
-        Member.full_name.ilike(request.full_name.strip())
+        func.lower(func.trim(Member.full_name)) == request.full_name.strip().lower()
     ).all()
 
     if not matches:
@@ -742,7 +590,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     if len(matches) > 1:
         raise HTTPException(
             status_code=409,
-            detail="More than one member with this name exists in the group. Please contact your admin."
+            detail="More than one member with this name exists in the group. Please contact your admin to resolve the naming conflict."
         )
 
     member = matches[0]
@@ -750,117 +598,17 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     if not member.password_hash or not verify_password(request.password, member.password_hash):
         raise HTTPException(status_code=401, detail="Invalid password")
 
-    if not member.is_active:
-        raise HTTPException(status_code=403, detail="Account is deactivated")
+    token = f"TOKEN-{member.id}-{datetime.utcnow().timestamp()}"
 
     return LoginResponse(
         success=True,
         member_id=member.id,
-        group_id=member.group_id,
+        group_id=group.id,
         group_name=group.name,
         full_name=member.full_name,
         role=member.role,
-        token=f"token-{member.id}-{datetime.now().timestamp()}"
+        token=token
     )
-
-# ==================== MEMBER DASHBOARD ENDPOINTS ====================
-
-def _build_dashboard_payload(member_id: int, db: Session) -> DashboardResponse:
-    member = get_member_or_404(member_id, db)
-
-    group = db.query(Group).filter(Group.id == member.group_id).first()
-    if not group:
-        raise HTTPException(status_code=404, detail="Group not found")
-
-    recent_transactions = db.query(Transaction).filter(Transaction.member_id == member_id)\
-        .order_by(Transaction.created_at.desc()).limit(10).all()
-
-    active_loans = db.query(Loan).filter(
-        Loan.member_id == member_id,
-        Loan.status == LoanStatus.ACTIVE
-    ).all()
-
-    savings_goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
-
-    recent_notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
-        .order_by(DailyNote.note_date.desc()).limit(5).all()
-
-    unread_notifications = db.query(Notification).filter(
-        Notification.member_id == member_id,
-        Notification.is_read == False
-    ).count()
-
-    group_members = db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).all()
-
-    group_resp = GroupResponse.model_validate(group)
-    group_resp.member_count = len(group_members)
-    group_resp.total_members = len(group_members)
-    group_resp.total_savings = sum(m.savings_balance for m in group_members)
-
-    member_profile = MemberProfileResponse.model_validate(member)
-    member_profile.group_name = group.name
-    member_profile.savings_balance = member.savings_balance or 0.0
-
-    goal_resp = None
-    if savings_goal:
-        goal_resp = SavingsGoalResponse.model_validate(savings_goal)
-        if savings_goal.target_amount > 0:
-            goal_resp.progress_percent = round((savings_goal.current_amount / savings_goal.target_amount) * 100, 1)
-
-    return DashboardResponse(
-        member=member_profile,
-        group=group_resp,
-        recent_transactions=[TransactionResponse.model_validate(t) for t in recent_transactions],
-        active_loans=[LoanResponse.model_validate(l) for l in active_loans],
-        savings_goal=goal_resp,
-        recent_notes=[DailyNoteResponse.model_validate(n) for n in recent_notes],
-        unread_notifications=unread_notifications,
-        group_members=[MemberResponse.model_validate(m) for m in group_members]
-    )
-
-@app.get("/api/members/{member_id}/dashboard", response_model=DashboardResponse)
-@app.get("/members/{member_id}/dashboard", response_model=DashboardResponse)
-@app.get("/api/members/{member_id}", response_model=DashboardResponse)
-@app.get("/members/{member_id}", response_model=DashboardResponse)
-def get_member_dashboard(member_id: int, db: Session = Depends(get_db)):
-    """Fetch dashboard payload for member with exact route match support"""
-    return _build_dashboard_payload(member_id, db)
-
-@app.put("/api/members/{member_id}", response_model=MemberResponse)
-@app.put("/members/{member_id}", response_model=MemberResponse)
-def update_member(member_id: int, payload: MemberUpdate, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
-
-    if payload.full_name is not None:
-        member.full_name = payload.full_name
-    if payload.email is not None:
-        member.email = payload.email
-    if payload.phone is not None:
-        member.phone = payload.phone
-    if payload.identifier is not None:
-        member.identifier = payload.identifier
-    if payload.password is not None:
-        member.password_hash = hash_password(payload.password)
-    if payload.role is not None:
-        member.role = payload.role
-    if payload.is_active is not None:
-        member.is_active = payload.is_active
-
-    db.commit()
-    db.refresh(member)
-    return MemberResponse.model_validate(member)
-
-@app.put("/api/members/{member_id}/password")
-@app.put("/members/{member_id}/password")
-def change_member_password(member_id: int, payload: PasswordChangeRequest, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
-
-    if not member.password_hash or not verify_password(payload.current_password, member.password_hash):
-        raise HTTPException(status_code=401, detail="Current password is incorrect")
-
-    member.password_hash = hash_password(payload.new_password)
-    db.commit()
-    return {"success": True, "detail": "Password updated successfully"}
 
 # ==================== GROUP ENDPOINTS ====================
 
@@ -870,12 +618,11 @@ def get_groups(db: Session = Depends(get_db)):
     result = []
     for g in groups:
         member_count = db.query(Member).filter(Member.group_id == g.id, Member.is_active == True).count()
-        total_savings = db.query(Member).filter(Member.group_id == g.id).with_entities(Member.savings_balance).all()
+        total_savings = db.query(Member).filter(Member.group_id == g.id, Member.is_active == True).with_entities(Member.savings_balance).all()
         total = sum(s[0] for s in total_savings) if total_savings else 0.0
 
         grp = GroupResponse.model_validate(g)
         grp.member_count = member_count
-        grp.total_members = member_count
         grp.total_savings = total
         result.append(grp)
     return result
@@ -899,7 +646,6 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
 
     group_resp = GroupResponse.model_validate(group)
     group_resp.member_count = len(members)
-    group_resp.total_members = len(members)
     group_resp.total_savings = total_savings
 
     return GroupSummaryResponse(
@@ -913,310 +659,631 @@ def get_group(group_id: int, db: Session = Depends(get_db)):
         top_members=[MemberResponse.model_validate(m) for m in top_members]
     )
 
-# ==================== TRANSACTION ENDPOINTS ====================
+@app.put("/api/groups/{group_id}", response_model=GroupResponse)
+def update_group(group_id: int, update: GroupUpdate, db: Session = Depends(get_db)):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
 
-@app.get("/api/members/{member_id}/transactions", response_model=List[TransactionResponse])
-@app.get("/members/{member_id}/transactions", response_model=List[TransactionResponse])
-def get_member_transactions(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
-    transactions = db.query(Transaction).filter(Transaction.member_id == member_id)\
-        .order_by(Transaction.created_at.desc()).all()
-    return [TransactionResponse.model_validate(t) for t in transactions]
+    for field, value in update.model_dump(exclude_unset=True).items():
+        if field == "name" and value:
+            setattr(group, field, value.strip())
+        else:
+            setattr(group, field, value)
 
-@app.post("/api/members/{member_id}/transactions", response_model=TransactionResponse)
-@app.post("/members/{member_id}/transactions", response_model=TransactionResponse)
-def create_transaction(member_id: int, tx: TransactionCreate, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
+    db.commit()
+    db.refresh(group)
 
-    db_tx = Transaction(
-        group_id=member.group_id,
-        member_id=member_id,
-        type=tx.type,
-        amount=tx.amount,
-        currency=tx.currency,
-        method=tx.method,
-        description=tx.description,
-        reference=tx.reference
+    member_count = db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).count()
+    total_savings = sum(m.savings_balance for m in db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).all())
+
+    resp = GroupResponse.model_validate(group)
+    resp.member_count = member_count
+    resp.total_savings = total_savings
+    return resp
+
+@app.delete("/api/groups/{group_id}")
+def delete_group(group_id: int, db: Session = Depends(get_db)):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    db.delete(group)
+    db.commit()
+    return {"message": "Group deleted successfully"}
+
+# ==================== MEMBER ENDPOINTS ====================
+
+@app.get("/api/groups/{group_id}/members", response_model=List[MemberResponse])
+def get_group_members(group_id: int, role: Optional[MemberRole] = None, db: Session = Depends(get_db)):
+    query = db.query(Member).filter(Member.group_id == group_id, Member.is_active == True)
+    if role:
+        query = query.filter(Member.role == role)
+    return query.all()
+
+@app.get("/api/members/{member_id}", response_model=MemberProfileResponse)
+def get_member(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    resp = MemberProfileResponse.model_validate(member)
+    resp.group_name = member.group.name if member.group else None
+    return resp
+
+@app.post("/api/groups/{group_id}/members", response_model=MemberResponse)
+def invite_member(group_id: int, request: InviteMemberRequest, db: Session = Depends(get_db)):
+    """Invite a new member to the group (Admin/Treasurer only)"""
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    identifier = request.identifier or request.phone or request.email
+    if not identifier:
+        raise HTTPException(status_code=400, detail="An identifier, phone, or email is required")
+
+    # Check if identifier already exists in this group (consistent with DB unique constraint)
+    existing = db.query(Member).filter(Member.group_id == group_id, Member.identifier == identifier).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Member with this identifier already exists in this group")
+
+    member = Member(
+        member_id=generate_member_id(db, group_id),
+        group_id=group_id,
+        full_name=request.full_name.strip(),
+        email=request.email.strip() if request.email else None,
+        phone=request.phone.strip() if request.phone else None,
+        identifier=identifier.strip() if identifier else None,
+        password_hash=hash_password(request.initial_password),
+        role=request.role,
+        savings_balance=0.0,
+        credit_score=700,
+        joined_at=datetime.utcnow()
+    )
+    db.add(member)
+    db.flush()
+
+    notification = Notification(
+        group_id=group_id,
+        member_id=member.id,
+        type=NotificationType.GROUP_INVITE,
+        title="Welcome to the Group",
+        description=f"You have been invited to join {group.name}"
+    )
+    db.add(notification)
+
+    db.commit()
+    db.refresh(member)
+    return member
+
+@app.put("/api/members/{member_id}", response_model=MemberResponse)
+def update_member(member_id: int, update: MemberUpdate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    for field, value in update.model_dump(exclude_unset=True).items():
+        if field == "password" and value:
+            member.password_hash = hash_password(value)
+        elif field in ("full_name", "identifier", "email", "phone") and value:
+            setattr(member, field, value.strip())
+        else:
+            setattr(member, field, value)
+
+    db.commit()
+    db.refresh(member)
+    return member
+
+@app.delete("/api/members/{member_id}")
+def deactivate_member(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    member.is_active = False
+    db.commit()
+    return {"message": "Member deactivated successfully"}
+
+# ==================== DASHBOARD ENDPOINT ====================
+@app.get("/api/members/{member_id}/dashboard", response_model=DashboardResponse)
+def get_dashboard(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    group = member.group
+    recent_transactions = db.query(Transaction).filter(Transaction.member_id == member_id).order_by(Transaction.created_at.desc()).limit(10).all()
+    active_loans = db.query(Loan).filter(Loan.member_id == member_id, Loan.status == LoanStatus.ACTIVE).all()
+    savings_goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
+    recent_notes = db.query(DailyNote).filter(DailyNote.member_id == member_id).order_by(DailyNote.note_date.desc()).limit(5).all()
+    unread_count = db.query(Notification).filter(Notification.member_id == member_id, Notification.is_read == False).count()
+    group_members = db.query(Member).filter(Member.group_id == member.group_id, Member.is_active == True, Member.id != member_id).all()
+
+    member_resp = MemberProfileResponse.model_validate(member)
+    member_resp.group_name = group.name if group else None
+
+    group_resp = GroupResponse.model_validate(group) if group else None
+    if group_resp:
+        group_resp.member_count = db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).count()
+        group_resp.total_savings = sum(m.savings_balance for m in db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).all())
+
+    return DashboardResponse(
+        member=member_resp,
+        group=group_resp,
+        recent_transactions=[TransactionResponse.model_validate(t) for t in recent_transactions],
+        active_loans=[LoanResponse.model_validate(l) for l in active_loans],
+        savings_goal=SavingsGoalResponse.model_validate(savings_goal) if savings_goal else None,
+        recent_notes=[DailyNoteResponse.model_validate(n) for n in recent_notes],
+        unread_notifications=unread_count,
+        group_members=[MemberResponse.model_validate(m) for m in group_members]
     )
 
-    if tx.type == TransactionType.DEPOSIT:
-        member.savings_balance += tx.amount
-    elif tx.type == TransactionType.WITHDRAWAL:
-        if member.savings_balance < tx.amount:
-            raise HTTPException(status_code=400, detail="Insufficient funds")
-        member.savings_balance -= tx.amount
+# ==================== TRANSACTION ENDPOINTS ====================
 
-    db.add(db_tx)
-    db.commit()
-    db.refresh(db_tx)
-    return TransactionResponse.model_validate(db_tx)
+@app.get("/api/groups/{group_id}/transactions", response_model=List[TransactionResponse])
+def get_group_transactions(group_id: int, member_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Transaction).filter(Transaction.group_id == group_id)
+    if member_id:
+        query = query.filter(Transaction.member_id == member_id)
+    transactions = query.order_by(Transaction.created_at.desc()).all()
+    result = []
+    for t in transactions:
+        resp = TransactionResponse.model_validate(t)
+        resp.member_name = t.member.full_name if t.member else None
+        result.append(resp)
+    return result
 
-@app.post("/api/members/{member_id}/deposit", response_model=BalanceTransactionResponse)
-@app.post("/members/{member_id}/deposit", response_model=BalanceTransactionResponse)
-def process_deposit(member_id: int, payload: DepositRequest, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
-    method = resolve_method(payload.method)
+@app.get("/api/members/{member_id}/transactions", response_model=List[TransactionResponse])
+def get_member_transactions(member_id: int, db: Session = Depends(get_db)):
+    transactions = db.query(Transaction).filter(Transaction.member_id == member_id).order_by(Transaction.created_at.desc()).all()
+    result = []
+    for t in transactions:
+        resp = TransactionResponse.model_validate(t)
+        resp.member_name = t.member.full_name if t.member else None
+        result.append(resp)
+    return result
 
-    db_tx = Transaction(
+@app.post("/api/members/{member_id}/deposit")
+def make_deposit(member_id: int, request: DepositRequest, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    transaction = Transaction(
         group_id=member.group_id,
         member_id=member_id,
         type=TransactionType.DEPOSIT,
-        amount=payload.amount,
-        method=method,
-        description=f"Deposit via {method.value}"
+        amount=request.amount,
+        method=request.method,
+        description=f"Deposit via {request.method.value}"
     )
+    db.add(transaction)
 
-    member.savings_balance += payload.amount
+    member.savings_balance += request.amount
+    member.total_shares = int(member.savings_balance / (member.group.share_value if member.group else 100))
 
-    notify(db, member, NotificationType.DEPOSIT, "Deposit Successful",
-           f"MWK {payload.amount:,.2f} has been added to your savings")
+    notification = Notification(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=NotificationType.DEPOSIT,
+        title="Deposit Successful",
+        description=f"MWK {request.amount:.2f} has been added to your savings"
+    )
+    db.add(notification)
 
-    db.add(db_tx)
     db.commit()
-    db.refresh(db_tx)
+    return {"message": "Deposit successful", "new_balance": member.savings_balance, "shares": member.total_shares}
 
-    resp = BalanceTransactionResponse.model_validate(db_tx)
-    resp.new_balance = member.savings_balance
-    return resp
+@app.post("/api/members/{member_id}/withdraw")
+def make_withdrawal(member_id: int, request: WithdrawRequest, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
-@app.post("/api/members/{member_id}/withdraw", response_model=BalanceTransactionResponse)
-@app.post("/members/{member_id}/withdraw", response_model=BalanceTransactionResponse)
-def process_withdrawal(member_id: int, payload: WithdrawRequest, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
-    method = resolve_method(payload.method)
-
-    if member.savings_balance < payload.amount:
+    if member.savings_balance < request.amount:
         raise HTTPException(status_code=400, detail="Insufficient funds")
 
-    db_tx = Transaction(
+    transaction = Transaction(
         group_id=member.group_id,
         member_id=member_id,
         type=TransactionType.WITHDRAWAL,
-        amount=payload.amount,
-        method=method,
-        description=f"Withdrawal via {method.value}"
+        amount=request.amount,
+        method=request.method,
+        description=f"Withdrawal via {request.method.value}"
     )
+    db.add(transaction)
 
-    member.savings_balance -= payload.amount
+    member.savings_balance -= request.amount
+    member.total_shares = int(member.savings_balance / (member.group.share_value if member.group else 100))
 
-    notify(db, member, NotificationType.WITHDRAWAL, "Withdrawal Processed",
-           f"MWK {payload.amount:,.2f} has been withdrawn from your savings")
+    notification = Notification(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=NotificationType.WITHDRAWAL,
+        title="Withdrawal Successful",
+        description=f"MWK {request.amount:.2f} has been withdrawn from your savings"
+    )
+    db.add(notification)
 
-    db.add(db_tx)
     db.commit()
-    db.refresh(db_tx)
-
-    resp = BalanceTransactionResponse.model_validate(db_tx)
-    resp.new_balance = member.savings_balance
-    return resp
+    return {"message": "Withdrawal successful", "new_balance": member.savings_balance, "shares": member.total_shares}
 
 # ==================== LOAN ENDPOINTS ====================
 
+@app.get("/api/groups/{group_id}/loans", response_model=List[LoanResponse])
+def get_group_loans(group_id: int, status: Optional[LoanStatus] = None, db: Session = Depends(get_db)):
+    query = db.query(Loan).filter(Loan.group_id == group_id)
+    if status:
+        query = query.filter(Loan.status == status)
+    loans = query.order_by(Loan.created_at.desc()).all()
+    result = []
+    for l in loans:
+        resp = LoanResponse.model_validate(l)
+        resp.member_name = l.member.full_name if l.member else None
+        result.append(resp)
+    return result
+
 @app.get("/api/members/{member_id}/loans", response_model=List[LoanResponse])
-@app.get("/members/{member_id}/loans", response_model=List[LoanResponse])
 def get_member_loans(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
     loans = db.query(Loan).filter(Loan.member_id == member_id).order_by(Loan.created_at.desc()).all()
-    return [LoanResponse.model_validate(l) for l in loans]
+    result = []
+    for l in loans:
+        resp = LoanResponse.model_validate(l)
+        resp.member_name = l.member.full_name if l.member else None
+        result.append(resp)
+    return result
 
 @app.post("/api/members/{member_id}/loans", response_model=LoanResponse)
-@app.post("/members/{member_id}/loans", response_model=LoanResponse)
-def create_loan(member_id: int, payload: LoanCreate, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
+def request_loan(member_id: int, loan: LoanCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
-    monthly_payment = round(
-        (payload.principal * (1 + payload.interest_rate / 100)) / payload.duration_months, 2
-    )
-    due_date = datetime.utcnow() + timedelta(days=30 * payload.duration_months)
+    loan_number = generate_loan_number(db, member.group_id)
+    interest = loan.principal * (loan.interest_rate / 100)
+    total = loan.principal + interest
+    monthly = total / loan.duration_months
 
-    loan = Loan(
+    db_loan = Loan(
         group_id=member.group_id,
         member_id=member_id,
-        loan_number=generate_loan_number(db, member.group_id),
-        title=payload.title,
-        purpose=payload.purpose,
-        principal=payload.principal,
-        interest_rate=payload.interest_rate,
+        loan_number=loan_number,
         total_paid=0.0,
         status=LoanStatus.PENDING,
-        duration_months=payload.duration_months,
-        monthly_payment=monthly_payment,
-        due_date=due_date
+        monthly_payment=monthly,
+        due_date=datetime.now() + timedelta(days=30*loan.duration_months),
+        **loan.model_dump()
     )
+    db.add(db_loan)
+    db.flush()
 
-    notify(db, member, NotificationType.LOAN_REQUESTED, "Loan Request Submitted",
-           f"Your request for MWK {payload.principal:,.2f} ({payload.title}) is awaiting review")
+    notification = Notification(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=NotificationType.LOAN_APPROVED,
+        title="Loan Request Submitted",
+        description=f"Your loan request for MWK {loan.principal:.2f} is being reviewed"
+    )
+    db.add(notification)
 
-    db.add(loan)
     db.commit()
-    db.refresh(loan)
-    return LoanResponse.model_validate(loan)
+    db.refresh(db_loan)
+    return db_loan
+
+@app.post("/api/loans/{loan_id}/approve")
+def approve_loan(loan_id: int, request: LoanApprovalRequest, db: Session = Depends(get_db)):
+    """Approve a pending loan (Admin/Treasurer only)"""
+    loan = db.query(Loan).filter(Loan.id == loan_id).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    approver = db.query(Member).filter(Member.id == request.approver_id).first()
+    if not approver or approver.role not in [MemberRole.ADMIN, MemberRole.TREASURER]:
+        raise HTTPException(status_code=403, detail="Only admin or treasurer can approve loans")
+
+    if loan.status != LoanStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Loan is not pending approval")
+
+    loan.status = LoanStatus.ACTIVE
+    loan.approved_by = request.approver_id
+
+    # Disburse loan amount to member
+    member = db.query(Member).filter(Member.id == loan.member_id).first()
+    member.savings_balance += loan.principal
+    member.total_shares = int(member.savings_balance / (member.group.share_value if member.group else 100))
+
+    transaction = Transaction(
+        group_id=loan.group_id,
+        member_id=loan.member_id,
+        type=TransactionType.LOAN_DISBURSEMENT,
+        amount=loan.principal,
+        description=f"Loan disbursement for {loan.loan_number}"
+    )
+    db.add(transaction)
+
+    notification = Notification(
+        group_id=loan.group_id,
+        member_id=loan.member_id,
+        type=NotificationType.LOAN_APPROVED,
+        title="Loan Approved",
+        description=f"Your loan {loan.loan_number} for MWK {loan.principal:.2f} has been approved"
+    )
+    db.add(notification)
+
+    db.commit()
+    return {"message": "Loan approved and disbursed", "loan_number": loan.loan_number}
+
+@app.post("/api/members/{member_id}/loans/{loan_id}/repay")
+def repay_loan(member_id: int, loan_id: int, request: LoanRepaymentRequest, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    loan = db.query(Loan).filter(Loan.id == loan_id, Loan.member_id == member_id).first()
+
+    if not member or not loan:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    amount = request.amount
+    if member.savings_balance < amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    loan.total_paid += amount
+    member.savings_balance -= amount
+    member.total_shares = int(member.savings_balance / (member.group.share_value if member.group else 100))
+
+    transaction = Transaction(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=TransactionType.LOAN_REPAYMENT,
+        amount=amount,
+        description=f"Loan repayment for {loan.loan_number}"
+    )
+    db.add(transaction)
+
+    notification = Notification(
+        group_id=member.group_id,
+        member_id=member_id,
+        type=NotificationType.LOAN_REPAYMENT,
+        title="Loan Repayment Successful",
+        description=f"MWK {amount:.2f} has been repaid for loan {loan.loan_number}"
+    )
+    db.add(notification)
+
+    total_due = loan.principal * (1 + loan.interest_rate/100)
+    if loan.total_paid >= total_due:
+        loan.status = LoanStatus.PAID_OFF
+        loan.paid_off_at = datetime.now()
+        member.credit_score = min(850, member.credit_score + 10)
+
+    db.commit()
+    return {"message": "Repayment successful", "loan_status": loan.status.value, "remaining": max(0, total_due - loan.total_paid)}
 
 # ==================== SAVINGS GOAL ENDPOINTS ====================
 
-@app.get("/api/members/{member_id}/savings-goal", response_model=Optional[SavingsGoalResponse])
-@app.get("/members/{member_id}/savings-goal", response_model=Optional[SavingsGoalResponse])
+@app.get("/api/members/{member_id}/savings-goal", response_model=SavingsGoalResponse)
 def get_savings_goal(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
     goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
     if not goal:
-        return None
+        raise HTTPException(status_code=404, detail="Savings goal not found")
+
     resp = SavingsGoalResponse.model_validate(goal)
-    if goal.target_amount > 0:
-        resp.progress_percent = round((goal.current_amount / goal.target_amount) * 100, 1)
+    resp.progress_percent = round((goal.current_amount / goal.target_amount) * 100, 1) if goal.target_amount > 0 else 0
     return resp
 
 @app.put("/api/members/{member_id}/savings-goal", response_model=SavingsGoalResponse)
-@app.put("/members/{member_id}/savings-goal", response_model=SavingsGoalResponse)
-def upsert_savings_goal(member_id: int, payload: SavingsGoalCreate, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
+def update_savings_goal(member_id: int, update: SavingsGoalUpdate, db: Session = Depends(get_db)):
     goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
     if not goal:
-        goal = SavingsGoal(member_id=member_id)
+        member = db.query(Member).filter(Member.id == member_id).first()
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+        goal = SavingsGoal(member_id=member_id, **update.model_dump(exclude_unset=True))
         db.add(goal)
-
-    goal.name = payload.name
-    goal.target_amount = payload.target_amount
-    goal.current_amount = payload.current_amount
-    goal.icon = payload.icon
+    else:
+        for field, value in update.model_dump(exclude_unset=True).items():
+            setattr(goal, field, value)
 
     db.commit()
     db.refresh(goal)
 
     resp = SavingsGoalResponse.model_validate(goal)
-    if goal.target_amount > 0:
-        resp.progress_percent = round((goal.current_amount / goal.target_amount) * 100, 1)
+    resp.progress_percent = round((goal.current_amount / goal.target_amount) * 100, 1) if goal.target_amount > 0 else 0
     return resp
 
 # ==================== NOTES ENDPOINTS ====================
 
+@app.get("/api/groups/{group_id}/notes", response_model=List[DailyNoteResponse])
+def get_group_notes(group_id: int, db: Session = Depends(get_db)):
+    notes = db.query(DailyNote).filter(DailyNote.group_id == group_id).order_by(DailyNote.note_date.desc()).all()
+    result = []
+    for n in notes:
+        resp = DailyNoteResponse.model_validate(n)
+        resp.member_name = n.member.full_name if n.member else None
+        result.append(resp)
+    return result
+
 @app.get("/api/members/{member_id}/notes", response_model=List[DailyNoteResponse])
-@app.get("/members/{member_id}/notes", response_model=List[DailyNoteResponse])
 def get_member_notes(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
-    notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
-        .order_by(DailyNote.note_date.desc()).all()
-    return [DailyNoteResponse.model_validate(n) for n in notes]
+    notes = db.query(DailyNote).filter(DailyNote.member_id == member_id).order_by(DailyNote.note_date.desc()).all()
+    result = []
+    for n in notes:
+        resp = DailyNoteResponse.model_validate(n)
+        resp.member_name = n.member.full_name if n.member else None
+        result.append(resp)
+    return result
 
 @app.post("/api/members/{member_id}/notes", response_model=DailyNoteResponse)
-@app.post("/members/{member_id}/notes", response_model=DailyNoteResponse)
-def create_note(member_id: int, payload: DailyNoteCreate, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
+def create_note(member_id: int, note: DailyNoteCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
-    note = DailyNote(
+    db_note = DailyNote(
         group_id=member.group_id,
         member_id=member_id,
-        text=payload.text,
-        mood=payload.mood
+        **note.model_dump()
     )
-    db.add(note)
+    db.add(db_note)
     db.commit()
-    db.refresh(note)
-    return DailyNoteResponse.model_validate(note)
+    db.refresh(db_note)
 
-# ==================== NOTIFICATIONS ENDPOINTS ====================
+    resp = DailyNoteResponse.model_validate(db_note)
+    resp.member_name = member.full_name
+    return resp
+
+# ==================== NOTIFICATION ENDPOINTS ====================
 
 @app.get("/api/members/{member_id}/notifications", response_model=List[NotificationResponse])
-@app.get("/members/{member_id}/notifications", response_model=List[NotificationResponse])
-def get_member_notifications(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
-    notifs = db.query(Notification).filter(Notification.member_id == member_id)\
-        .order_by(Notification.created_at.desc()).limit(30).all()
-    return [NotificationResponse.model_validate(n) for n in notifs]
+def get_notifications(member_id: int, unread_only: bool = False, db: Session = Depends(get_db)):
+    query = db.query(Notification).filter(Notification.member_id == member_id)
+    if unread_only:
+        query = query.filter(Notification.is_read == False)
+    return query.order_by(Notification.created_at.desc()).all()
 
-@app.put("/api/members/{member_id}/notifications/read")
-@app.put("/members/{member_id}/notifications/read")
-def mark_notifications_read(member_id: int, db: Session = Depends(get_db)):
-    get_member_or_404(member_id, db)
-    db.query(Notification).filter(
-        Notification.member_id == member_id, Notification.is_read == False
-    ).update({"is_read": True})
+@app.patch("/api/members/{member_id}/notifications/{notif_id}/read")
+def mark_notification_read(member_id: int, notif_id: int, db: Session = Depends(get_db)):
+    notif = db.query(Notification).filter(Notification.id == notif_id, Notification.member_id == member_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notif.is_read = True
     db.commit()
-    return {"success": True}
+    return {"message": "Marked as read"}
+
+@app.patch("/api/members/{member_id}/notifications/read-all")
+def mark_all_read(member_id: int, db: Session = Depends(get_db)):
+    db.query(Notification).filter(Notification.member_id == member_id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return {"message": "All notifications marked as read"}
 
 # ==================== CHAT ENDPOINTS ====================
 
 @app.get("/api/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
-@app.get("/groups/{group_id}/messages", response_model=List[ChatMessageResponse])
-def get_chat_messages(group_id: int, db: Session = Depends(get_db)):
-    messages = db.query(ChatMessage).filter(ChatMessage.group_id == group_id)\
-        .order_by(ChatMessage.created_at.asc()).all()
-    return [ChatMessageResponse.model_validate(m) for m in messages]
+def get_group_messages(group_id: int, db: Session = Depends(get_db)):
+    messages = db.query(ChatMessage).filter(ChatMessage.group_id == group_id).order_by(ChatMessage.created_at.asc()).all()
+    result = []
+    for m in messages:
+        resp = ChatMessageResponse.model_validate(m)
+        resp.member_name = m.member.full_name if m.member else None
+        result.append(resp)
+    return result
 
 @app.get("/api/members/{member_id}/messages", response_model=List[ChatMessageResponse])
-@app.get("/members/{member_id}/messages", response_model=List[ChatMessageResponse])
 def get_member_messages(member_id: int, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
-    messages = db.query(ChatMessage).filter(ChatMessage.group_id == member.group_id)\
-        .order_by(ChatMessage.created_at.asc()).all()
-    return [ChatMessageResponse.model_validate(m) for m in messages]
+    messages = db.query(ChatMessage).filter(ChatMessage.member_id == member_id).order_by(ChatMessage.created_at.asc()).all()
+    result = []
+    for m in messages:
+        resp = ChatMessageResponse.model_validate(m)
+        resp.member_name = m.member.full_name if m.member else None
+        result.append(resp)
+    return result
 
 @app.post("/api/members/{member_id}/messages", response_model=ChatMessageResponse)
-@app.post("/members/{member_id}/messages", response_model=ChatMessageResponse)
-def post_member_message(member_id: int, payload: ChatMessageCreate, db: Session = Depends(get_db)):
-    member = get_member_or_404(member_id, db)
+def send_message(member_id: int, message: ChatMessageCreate, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
-    msg = ChatMessage(
+    db_message = ChatMessage(
         group_id=member.group_id,
         member_id=member_id,
-        sender=payload.sender,
-        text=payload.text
+        **message.model_dump()
     )
-    db.add(msg)
+    db.add(db_message)
     db.commit()
-    db.refresh(msg)
-    return ChatMessageResponse.model_validate(msg)
+    db.refresh(db_message)
 
-# ==================== DEVELOPER CONTROL ENDPOINT ====================
+    resp = ChatMessageResponse.model_validate(db_message)
+    resp.member_name = member.full_name
+    return resp
 
-@app.get("/api/admin/developer-overview", response_model=DeveloperDashboardStats)
-@app.get("/admin/developer-overview", response_model=DeveloperDashboardStats)
-def get_developer_control_overview(db: Session = Depends(get_db)):
-    """Developer endpoint to list all groups, system-wide totals, and metadata."""
-    groups = db.query(Group).order_by(Group.created_at.desc()).all()
+# ==================== REPORT ENDPOINTS ====================
 
-    group_summaries = []
-    platform_savings = 0.0
-    platform_members = 0
-    platform_loans = 0
+@app.get("/api/members/{member_id}/report")
+def generate_member_report(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
-    for g in groups:
-        members = db.query(Member).filter(Member.group_id == g.id, Member.is_active == True).all()
-        m_count = len(members)
+    transactions = db.query(Transaction).filter(Transaction.member_id == member_id).all()
+    loans = db.query(Loan).filter(Loan.member_id == member_id).all()
 
-        g_savings = sum(m.savings_balance or 0.0 for m in members)
-        g_loans = db.query(Loan).filter(Loan.group_id == g.id, Loan.status == LoanStatus.ACTIVE).count()
+    total_deposits = sum(t.amount for t in transactions if t.type == TransactionType.DEPOSIT)
+    total_withdrawals = sum(t.amount for t in transactions if t.type == TransactionType.WITHDRAWAL)
+    total_interest = sum(t.amount for t in transactions if t.type == TransactionType.INTEREST)
+    total_repaid = sum(t.amount for t in transactions if t.type == TransactionType.LOAN_REPAYMENT)
 
-        admin_member = db.query(Member).filter(Member.group_id == g.id, Member.role == MemberRole.ADMIN).first()
+    return {
+        "member_name": member.full_name,
+        "member_id": member.member_id,
+        "group_name": member.group.name if member.group else None,
+        "generated_at": datetime.now(),
+        "summary": {
+            "current_balance": member.savings_balance,
+            "total_shares": member.total_shares,
+            "total_deposits": total_deposits,
+            "total_withdrawals": total_withdrawals,
+            "total_interest_earned": total_interest,
+            "total_loan_repayments": total_repaid,
+            "credit_score": member.credit_score,
+            "active_loans": len([l for l in loans if l.status == LoanStatus.ACTIVE]),
+            "total_loans_taken": len(loans),
+            "loans_paid_off": len([l for l in loans if l.status == LoanStatus.PAID_OFF])
+        },
+        "transactions": [
+            {"type": t.type.value, "amount": t.amount, "date": t.created_at.isoformat(), "description": t.description, "method": t.method.value if t.method else None}
+            for t in transactions
+        ],
+        "loans": [
+            {"title": l.title, "principal": l.principal, "status": l.status.value, "total_paid": l.total_paid, "loan_number": l.loan_number}
+            for l in loans
+        ]
+    }
 
-        platform_savings += g_savings
-        platform_members += m_count
-        platform_loans += g_loans
+@app.get("/api/groups/{group_id}/report")
+def generate_group_report(group_id: int, db: Session = Depends(get_db)):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
 
-        group_summaries.append(
-            AdminGroupOverview(
-                id=g.id,
-                group_id=g.group_id,
-                name=g.name,
-                interest_rate=g.interest_rate,
-                share_value=g.share_value,
-                cycle_duration_months=g.cycle_duration_months,
-                created_at=g.created_at,
-                member_count=m_count,
-                total_savings=g_savings,
-                active_loans_count=g_loans,
-                admin_name=admin_member.full_name if admin_member else "N/A",
-                admin_identifier=admin_member.identifier or admin_member.email or admin_member.phone if admin_member else "N/A"
-            )
-        )
+    members = db.query(Member).filter(Member.group_id == group_id, Member.is_active == True).all()
+    transactions = db.query(Transaction).filter(Transaction.group_id == group_id).all()
+    loans = db.query(Loan).filter(Loan.group_id == group_id).all()
 
-    return DeveloperDashboardStats(
-        total_groups=len(groups),
-        total_registered_members=platform_members,
-        total_platform_savings=platform_savings,
-        total_active_loans=platform_loans,
-        groups=group_summaries
-    )
+    total_savings = sum(m.savings_balance for m in members)
+    total_shares = sum(m.total_shares for m in members)
+    total_deposits = sum(t.amount for t in transactions if t.type == TransactionType.DEPOSIT)
+    total_loans_active = sum(l.principal for l in loans if l.status == LoanStatus.ACTIVE)
+    total_loans_paid = sum(l.total_paid for l in loans if l.status == LoanStatus.PAID_OFF)
 
+    return {
+        "group_name": group.name,
+        "group_id": group.group_id,
+        "interest_rate": group.interest_rate,
+        "share_value": group.share_value,
+        "generated_at": datetime.now(),
+        "summary": {
+            "total_members": len(members),
+            "total_savings": total_savings,
+            "total_shares": total_shares,
+            "total_deposits": total_deposits,
+            "active_loans_outstanding": total_loans_active,
+            "total_loans_repaid": total_loans_paid,
+            "active_loan_count": len([l for l in loans if l.status == LoanStatus.ACTIVE]),
+            "paid_loan_count": len([l for l in loans if l.status == LoanStatus.PAID_OFF])
+        },
+        "members": [
+            {"name": m.full_name, "member_id": m.member_id, "balance": m.savings_balance, "shares": m.total_shares, "credit_score": m.credit_score}
+            for m in members
+        ],
+        "recent_transactions": [
+            {"type": t.type.value, "amount": t.amount, "date": t.created_at.isoformat(), "member_id": t.member_id}
+            for t in sorted(transactions, key=lambda x: x.created_at, reverse=True)[:20]
+        ]
+    }
+
+# ==================== HEALTH CHECK ====================
+@app.get("/api/health")
+def health_check():
+    return {"status": "healthy", "service": "Titukulane+ API", "version": "2.0.0"}
+
+# ==================== ENTRY POINT ====================
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
