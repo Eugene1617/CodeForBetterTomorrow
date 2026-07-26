@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Member</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-<link rel="stylesheet" href="member.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Titukulane+ | Member Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link rel="stylesheet" href="member.css">
 </head>
 <body>
+
 <!-- ==================== HOME PAGE ==================== -->
 <div class="page active" id="page-home">
     <div class="member-header">
@@ -25,10 +26,10 @@
         </div>
         <div class="balance-section">
             <div class="balance-label">My Savings Balance</div>
-            <div class="balance-amount" id="balanceAmount">$0.00</div>
+            <div class="balance-amount" id="balanceAmount">MWK 0.00</div>
             
             <div class="balance-row">
-                <div class="balance-item" id="balanceMonthChange"><i class="fas fa-arrow-up" style="color:var(--accent);"></i> +$0 this month</div>
+                <div class="balance-item" id="balanceMonthChange"><i class="fas fa-arrow-up" style="color:var(--accent);"></i> +MWK 0 this month</div>
                 <div class="balance-item"><i class="fas fa-percentage" style="color:var(--accent);"></i> <span id="interestRate">0</span>% interest</div>
             </div>
         </div>
@@ -39,7 +40,12 @@
             <div class="qa-btn-icon green"><i class="fas fa-arrow-down"></i></div>
             <div class="qa-btn-label">Deposit</div>
         </button>
-      
+        
+        <button class="qa-btn" onclick="openModal('withdrawModal')">
+            <div class="qa-btn-icon red"><i class="fas fa-arrow-up"></i></div>
+            <div class="qa-btn-label">Withdraw</div>
+        </button>
+
         <button class="qa-btn" onclick="openModal('loanModal')">
             <div class="qa-btn-icon blue"><i class="fas fa-hand-holding-dollar"></i></div>
             <div class="qa-btn-label">Get Loan</div>
@@ -50,7 +56,8 @@
             <div class="qa-btn-label">Chat</div>
         </button>
     </div>
-    <!-- My Loans -->
+
+    <!-- My Loans Section -->
     <div class="section">
         <div class="section-header">
             <div class="section-title">My Loans</div>
@@ -61,14 +68,14 @@
                 <div class="no-loan-icon">🎉</div>
                 <div class="no-loan-title">No active loans</div>
                 <div class="no-loan-desc">Loading…</div>
-                <button class="loan-btn primary" style="max-width:240px;margin:0 auto;" onclick="openModal('loanModal')">
+                <button class="loan-btn primary" style="max-width:240px;margin:12px auto 0;" onclick="openModal('loanModal')">
                     <i class="fas fa-plus"></i> Request New Loan
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Savings Goal -->
+    <!-- Savings Goal Section -->
     <div class="section" id="savingsGoalSection" style="display:none;">
         <div class="section-header">
             <div class="section-title">My Savings Goal</div>
@@ -79,15 +86,15 @@
                 <div class="goal-icon" id="goalIcon">🚜</div>
                 <div class="goal-info">
                     <div class="goal-name" id="goalName">—</div>
-                    <div class="goal-target" id="goalTarget">Target: $0</div>
+                    <div class="goal-target" id="goalTarget">Target: MWK 0</div>
                 </div>
             </div>
             <div class="goal-progress">
                 <div class="goal-progress-bar"><div class="goal-progress-fill" id="goalProgressFill" style="width:0%"></div></div>
             </div>
             <div class="goal-stats">
-                <span class="current" id="goalCurrent">$0 saved</span>
-                <span class="target" id="goalRemaining">$0 to go</span>
+                <span class="current" id="goalCurrent">MWK 0 saved</span>
+                <span class="target" id="goalRemaining">MWK 0 to go</span>
             </div>
         </div>
     </div>
@@ -102,13 +109,13 @@
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
                 <div style="width:36px;height:36px;background:rgba(232,168,56,0.1);color:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;">📝</div>
                 <div style="flex:1;">
-                    <div style="font-size:14px;font-weight:600;">Today: July 20, 2026</div>
+                    <div style="font-size:14px;font-weight:600;">Today's Entry</div>
                     <div style="font-size:12px;color:var(--text-dim);">Tap to add your daily note</div>
                 </div>
                 <i class="fas fa-chevron-right" style="color:var(--text-dim);font-size:12px;"></i>
             </div>
             <div class="note-item" style="margin:0;">
-                <div class="note-date">July 18, 2026</div>
+                <div class="note-date">Recent Note</div>
                 <div class="note-text">Made my monthly deposit today. The mobile money integration is working smoothly now...</div>
                 <div class="note-mood">😊 Good</div>
             </div>
@@ -145,7 +152,7 @@
                 <div class="no-loan-icon">🎉</div>
                 <div class="no-loan-title">No active loans</div>
                 <div class="no-loan-desc">Loading…</div>
-                <button class="loan-btn primary" style="max-width:240px;margin:0 auto;" onclick="openModal('loanModal')">
+                <button class="loan-btn primary" style="max-width:240px;margin:12px auto 0;" onclick="openModal('loanModal')">
                     <i class="fas fa-plus"></i> Request a Loan
                 </button>
             </div>
@@ -178,14 +185,15 @@
         <div class="section-header">
             <div class="section-title">All Transactions</div>
             <button class="print-report-btn" onclick="downloadReport()">
-                <i class="fas fa-file-pdf"></i> download Report
+                <i class="fas fa-file-pdf"></i> Download Report
             </button>
         </div>
-            <div id="historyTxList">
-                <div class="tx-item"><div class="tx-info"><div class="tx-sub">Loading…</div></div></div>
-            </div>
+        <div id="historyTxList">
+            <div class="tx-item"><div class="tx-info"><div class="tx-sub">Loading…</div></div></div>
+        </div>
     </div>
 </div>
+
 <!-- ==================== NOTES PAGE ==================== -->
 <div class="page" id="page-notes">
     <div class="member-header" style="padding-bottom:24px;">
@@ -215,7 +223,6 @@
         <button class="loan-btn primary" style="margin-top:16px;width:100%;" id="saveNoteBtn" onclick="addNote()">
             <i class="fas fa-paper-plane"></i> Save Note
         </button>
-    </div>
 
         <div class="section-header" style="margin-top:28px;margin-bottom:16px;">
             <div class="section-title">Past Notes</div>
@@ -237,7 +244,7 @@
         <div class="profile-id" id="profileId">Member ID: — | Since —</div>
         <div class="profile-stats">
             <div class="profile-stat">
-                <div class="num" id="profileSavings">$0</div>
+                <div class="num" id="profileSavings">MWK 0</div>
                 <div class="label">Savings</div>
             </div>
             <div class="profile-stat">
@@ -261,7 +268,7 @@
         </div>
     </div>
     
-    <!-- Edit Profile Section -->
+    <!-- Settings Section -->
     <div class="section">
         <div class="section-header">
             <div class="section-title">Profile Settings</div>
@@ -282,10 +289,7 @@
             </div>
             <i class="fas fa-chevron-right menu-arrow"></i>
         </div>
-    </div>
-    
-    <div class="section">
-        <div class="menu-item">
+        <div class="menu-item" onclick="switchPage('history')">
             <div class="menu-icon blue"><i class="fas fa-history"></i></div>
             <div class="menu-text">
                 <div class="menu-title">Savings History</div>
@@ -293,7 +297,7 @@
             </div>
             <i class="fas fa-chevron-right menu-arrow"></i>
         </div>
-        <div class="menu-item">
+        <div class="menu-item" onclick="switchPage('loans')">
             <div class="menu-icon blue"><i class="fas fa-hand-holding-dollar"></i></div>
             <div class="menu-text">
                 <div class="menu-title">My Loans</div>
@@ -301,39 +305,7 @@
             </div>
             <i class="fas fa-chevron-right menu-arrow"></i>
         </div>
-        <div class="menu-item">
-            <div class="menu-icon gold"><i class="fas fa-star"></i></div>
-            <div class="menu-text">
-                <div class="menu-title">Credit Score Details</div>
-                <div class="menu-desc">How your score is calculated</div>
-            </div>
-            <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-        <div class="menu-item">
-            <div class="menu-icon gray"><i class="fas fa-bell"></i></div>
-            <div class="menu-text">
-                <div class="menu-title">Notifications</div>
-                <div class="menu-desc">SMS and push alerts</div>
-            </div>
-            <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-        <div class="menu-item">
-            <div class="menu-icon gray"><i class="fas fa-shield-halved"></i></div>
-            <div class="menu-text">
-                <div class="menu-title">Security</div>
-                <div class="menu-desc">PIN and biometric settings</div>
-            </div>
-            <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-        <div class="menu-item">
-            <div class="menu-icon gray"><i class="fas fa-circle-question"></i></div>
-            <div class="menu-text">
-                <div class="menu-title">Help & Support</div>
-                <div class="menu-desc">Contact bank committee</div>
-            </div>
-            <i class="fas fa-chevron-right menu-arrow"></i>
-        </div>
-        <div class="menu-item" style="margin-top:12px;" onclick="handleLogout()">
+        <div class="menu-item" onclick="handleLogout()" style="margin-top:12px;">
             <div class="menu-icon red"><i class="fas fa-right-from-bracket"></i></div>
             <div class="menu-text">
                 <div class="menu-title" style="color:var(--danger);">Log Out</div>
@@ -393,7 +365,6 @@
 <!-- ==================== MODALS ==================== -->
 
 <!-- Deposit Modal -->
-<!-- Deposit Modal -->
 <div class="modal-overlay" id="depositModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -405,9 +376,6 @@
                 <label>Amount (MWK - Kwacha)</label>
                 <input type="number" placeholder="Enter amount in kwacha" id="depositAmount" min="1" step="any" required>
             </div>
-        </div>
-    </div>
-</div>
 
             <div class="form-group">
                 <label>Payment Method</label>
@@ -439,31 +407,24 @@
                 </div>
             </div>
 
-            <!-- Password validation for secure methods -->
             <div class="form-group hidden" id="passwordField">
                 <label>Enter PIN/Password</label>
                 <input type="password" placeholder="Enter your 4-digit PIN" maxlength="4" id="depositPassword">
-                <small style="font-size:11px;color:var(--text-dim);margin-top:4px;">Required for secure transactions</small>
+                <small style="font-size:11px;color:var(--text-dim);margin-top:4px;display:block;">Required for secure transactions</small>
             </div>
 
             <div class="form-group" id="phoneField">
                 <label>Phone Number</label>
-                <input type="tel" placeholder="+265 7XX XXX XXX" value="+265 712 345 678" id="depositPhone">
+                <input type="tel" placeholder="+265 8XX XXX XXX" id="depositPhone">
             </div>
 
             <div class="form-group hidden" id="bankField">
                 <label>Bank Account</label>
                 <select>
-                    <option>Standard Chartered Bank - ****4521</option>
-                    <option>NMB Bank - ****8934</option>
-                    <option>FNB Bank - ****1205</option>
+                    <option>National Bank of Malawi - ****4521</option>
+                    <option>Standard Bank - ****8934</option>
+                    <option>FDH Bank - ****1205</option>
                 </select>
-            </div>
-
-            <div style="background:var(--bg);padding:16px;border-radius:12px;margin-bottom:20px;border:1px solid var(--border);">
-                <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">Amount to Deposit</div>
-                <div style="font-size:24px;font-weight:800;color:var(--primary);">MWK 50,000.00</div>
-                <div style="font-size:12px;color:var(--text-dim);margin-top:6px;">Fee: MWK 0.00 | Total: MWK 50,000.00</div>
             </div>
 
             <button class="modal-submit" onclick="confirmDeposit()">Confirm & Deposit</button>
@@ -480,18 +441,18 @@
         <div class="modal-sub">Transfer money from your savings</div>
         <div class="modal-form">
             <div class="form-group">
-                <label>Amount (USD)</label>
-                <input type="number" placeholder="Enter amount" value="0" id="withdrawAmount">
+                <label>Amount (MWK)</label>
+                <input type="number" placeholder="Enter amount" id="withdrawAmount">
             </div>
 
             <div class="form-group">
                 <label>Receive To</label>
                 <div class="payment-methods">
-                    <div class="payment-method" onclick="selectPayment(this, 'mtn')">
-                        <div class="payment-method-icon mtn">M</div>
+                    <div class="payment-method" onclick="selectPayment(this, 'tnm')">
+                        <div class="payment-method-icon mtn">T</div>
                         <div class="payment-method-info">
-                            <div class="payment-method-name">MTN Mobile Money</div>
-                            <div class="payment-method-desc">Instant to your MTN wallet</div>
+                            <div class="payment-method-name">TNM Mpamba</div>
+                            <div class="payment-method-desc">Instant to your Mpamba wallet</div>
                         </div>
                         <div class="payment-method-check"><i class="fas fa-check"></i></div>
                     </div>
@@ -503,27 +464,12 @@
                         </div>
                         <div class="payment-method-check"><i class="fas fa-check"></i></div>
                     </div>
-                    <div class="payment-method" onclick="selectPayment(this, 'bank')">
-                        <div class="payment-method-icon bank"><i class="fas fa-building-columns"></i></div>
-                        <div class="payment-method-info">
-                            <div class="payment-method-name">Bank Account</div>
-                            <div class="payment-method-desc">1-2 business days</div>
-                        </div>
-                        <div class="payment-method-check"><i class="fas fa-check"></i></div>
-                    </div>
                 </div>
             </div>
 
             <div class="form-group" id="withdrawPhoneField">
                 <label>Phone Number</label>
-                <input type="tel" placeholder="+265 7XX XXX XXX" value="+265 712 345 678" id="withdrawPhone">
-            </div>
-
-            <div class="form-group hidden" id="withdrawBankField">
-                <label>Bank Account</label>
-                <select>
-                    <option>Select your bank account</option>
-                </select>
+                <input type="tel" placeholder="+265 8XX XXX XXX" id="withdrawPhone">
             </div>
 
             <div id="withdrawError" class="form-error" style="display:none; color:#d9534f; background:#fdf2f2; padding:10px; border-radius:6px; margin-bottom:15px; font-size:14px;"></div>
@@ -542,16 +488,16 @@
         <div class="modal-sub" id="loanModalSub">Loan requests are reviewed by your group admin</div>
         <div class="modal-form">
             <div class="form-group">
-                <label>Loan Amount (USD)</label>
+                <label>Loan Amount (MWK)</label>
                 <input type="number" placeholder="0.00" id="loanAmount">
             </div>
             <div class="form-group">
                 <label>Purpose</label>
                 <select id="loanPurpose">
-                    <option value="farm_equipment">Farm Equipment</option>
-                    <option value="business">Business</option>
+                    <option value="farm_equipment">Farm Inputs & Equipment</option>
+                    <option value="business">Business Expansion</option>
                     <option value="school_fees">School Fees</option>
-                    <option value="medical">Medical</option>
+                    <option value="medical">Medical Emergency</option>
                     <option value="home_improvement">Home Improvement</option>
                     <option value="other">Other</option>
                 </select>
@@ -625,16 +571,13 @@
                 <input type="password" placeholder="Confirm new password" id="confirmPassword">
             </div>
             <div style="background:var(--bg);padding:12px;border-radius:12px;margin-bottom:20px;border:1px solid var(--border);font-size:12px;color:var(--text-dim);">
-                <i class="fas fa-shield-alt" style="margin-right:6px;color:var(--success);\"></i>Use a strong password with upper, lower, numbers, and symbols
+                <i class="fas fa-shield-alt" style="margin-right:6px;color:var(--success);"></i>Use a strong password with upper, lower, numbers, and symbols
             </div>
             <button class="modal-submit" onclick="changePassword()">Update Password</button>
         </div>
     </div>
 </div>
 
-<script src="member.js">
-
-</script>
-
+<script src="member.js"></script>
 </body>
 </html>
