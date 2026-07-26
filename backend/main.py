@@ -979,6 +979,83 @@ def create_note(member_id: int, note: DailyNoteCreate, db: Session = Depends(get
     db.commit()
     db.refresh(db_note)
     return DailyNoteResponse.model_validate(db_note)
+# ==================== ADMIN / DEVELOPER CONTROL ENDPOINTS ====================
 
+class AdminGroupOverview(BaseModel):
+    id: int
+    group_id: str
+    name: str
+    interest_rate: float
+    share_value: float
+    cycle_duration_months: int
+    created_at: datetime
+    member_count: int
+    total_savings: float
+    active_loans_count: int
+    admin_name: Optional[str] = "N/A"
+    admin_identifier: Optional[str] = "N/A"
+
+    class Config:
+        from_attributes = True
+
+class DeveloperDashboardStats(BaseModel):
+    total_groups: int
+    total_registered_members: int
+    total_platform_savings: float
+    total_active_loans: int
+    groups: List[AdminGroupOverview]
+
+@app.get("/api/admin/developer-overview", response_model=DeveloperDashboardStats)
+@app.get("/admin/developer-overview", response_model=DeveloperDashboardStats)
+def get_developer_control_overview(db: Session = Depends(get_db)):
+    """Developer route to inspect registered groups and system-wide metrics"""
+    groups = db.query(Group).order_by(Group.created_at.desc()).all()
+    
+    group_summaries = []
+    platform_savings = 0.0
+    platform_members = 0
+    platform_loans = 0
+
+    for g in groups:
+        # Get active group members
+        members = db.query(Member).filter(Member.group_id == g.id, Member.is_active == True).all()
+        m_count = len(members)
+        
+        # Calculate group financial totals
+        g_savings = sum(m.savings_balance or 0.0 for m in members)
+        g_loans = db.query(Loan).filter(Loan.group_id == g.id, Loan.status == LoanStatus.ACTIVE).count()
+        
+        # Locate group admin contact
+        admin_member = db.query(Member).filter(Member.group_id == g.id, Member.role == MemberRole.ADMIN).first()
+
+        # Update global platform tallies
+        platform_savings += g_savings
+        platform_members += m_count
+        platform_loans += g_loans
+
+        group_summaries.append(
+            AdminGroupOverview(
+                id=g.id,
+                group_id=g.group_id,
+                name=g.name,
+                interest_rate=g.interest_rate,
+                share_value=g.share_value,
+                cycle_duration_months=g.cycle_duration_months,
+                created_at=g.created_at,
+                member_count=m_count,
+                total_savings=g_savings,
+                active_loans_count=g_loans,
+                admin_name=admin_member.full_name if admin_member else "N/A",
+                admin_identifier=admin_member.identifier or admin_member.email or admin_member.phone if admin_member else "N/A"
+            )
+        )
+
+    return DeveloperDashboardStats(
+        total_groups=len(groups),
+        total_registered_members=platform_members,
+        total_platform_savings=platform_savings,
+        total_active_loans=platform_loans,
+        groups=group_summaries
+    )
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
