@@ -1,7 +1,7 @@
 // member.js — Titukulane+ Member Portal
 // Reads auth from sessionStorage (set by login.js)
 
-const API_BASE = 'https://codeforbettertomorrow.onrender.com/api';
+const API_BASE = 'http://localhost:8000/api';
 
 // ==================== AUTH STATE ====================
 function getToken()      { return sessionStorage.getItem('titukulane_token'); }
