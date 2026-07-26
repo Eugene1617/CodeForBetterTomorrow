@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VillageBank+ - Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<!-- SIDEBAR -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">🏦</div>
+        <div class="sidebar-brand">
+            VillageBank<span>+</span>
+            <small>Admin Portal</small>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">My Account</div>
+            <div class="nav-item active" onclick="switchPage('overview')">
+                <i class="fas fa-chart-pie"></i> Dashboard
+            </div>
+            <div class="nav-item" onclick="switchPage('my-savings')">
+                <i class="fas fa-piggy-bank"></i> My Savings
+            </div>
+            <div class="nav-item" onclick="switchPage('my-loans')">
+                <i class="fas fa-hand-holding-dollar"></i> My Loans
+            </div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Bank Management</div>
+            <div class="nav-item" onclick="switchPage('members')">
+                <i class="fas fa-users"></i> All Members
+            </div>
+            <div class="nav-item" onclick="switchPage('loans')">
+                <i class="fas fa-hand-holding-dollar"></i> Loan Management
+                <span class="nav-badge">3</span>
+            </div>
+            <div class="nav-item" onclick="switchPage('savings')">
+                <i class="fas fa-piggy-bank"></i> Savings Pool
+            </div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Intelligence</div>
+            <div class="nav-item" onclick="switchPage('fraud')">
+                <i class="fas fa-shield-halved"></i> Fraud Detection
+                <span class="nav-badge" style="background:var(--accent);color:var(--text);">2</span>
+            </div>
+            <div class="nav-item" onclick="switchPage('reports')">
+                <i class="fas fa-file-lines"></i> Reports
+            </div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-title">Settings</div>
+            <div class="nav-item" onclick="switchPage('settings')">
+                <i class="fas fa-gear"></i> Configuration
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+            <div class="user-name">John Doe</div>
+            <div class="user-role">Bank Chairman</div>
+        </div>
+        <i class="fas fa-right-from-bracket" style="color:var(--text-dim);cursor:pointer;"></i>
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+    <div class="top-bar">
+        <div class="top-search">
+            <i class="fas fa-magnifying-glass"></i>
+            <input type="text" placeholder="Search members, loans, transactions...">
+        </div>
+        <div class="top-actions">
+            <button class="top-icon-btn"><i class="fas fa-plus"></i></button>
+            <button class="top-icon-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-dot"></span>
+            </button>
+            <button class="top-icon-btn"><i class="fas fa-right-from-bracket"></i></button>
+        </div>
+    </div>
+
+    <!-- OVERVIEW PAGE -->
+    <div class="page-content tab-panel active" id="page-overview">
+        <div class="page-header">
+            <h1>Dashboard Overview</h1>
+            <p>Kyamulibwa Village Bank - July 2026</p>
+        </div>
+
+        <!-- Admin Personal Section (Admin is also a member) -->
+        <div class="personal-section">
+            <div class="personal-content">
+                <div class="personal-avatar">JD</div>
+                <div class="personal-info">
+                    <div class="personal-name">John Doe</div>
+                    <div class="personal-role">Bank Chairman & Member since March 2023</div>
+                    <div class="personal-stats">
+                        <div class="personal-stat">
+                            <div class="num">$4,250</div>
+                            <div class="label">My Savings</div>
+                        </div>
+                        <div class="personal-stat">
+                            <div class="num">$0</div>
+                            <div class="label">My Loans</div>
+                        </div>
+                        <div class="personal-stat">
+                            <div class="num">847</div>
+                            <div class="label">Credit Score</div>
+                        </div>
+                        <div class="personal-stat">
+                            <div class="num">12</div>
+                            <div class="label">Months Saved</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="personal-actions">
+                    <button class="personal-btn light"><i class="fas fa-plus"></i> Save</button>
+                    <button class="personal-btn gold"><i class="fas fa-hand-holding-dollar"></i> Request Loan</button>
+                    <button class="personal-btn blue" onclick="openModal('requestMountModal')"><i class="fas fa-mountain"></i> Request Mount</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fraud Alert -->
+        <div class="fraud-alert">
+            <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="fraud-alert-content">
+                <div class="fraud-alert-title">AI Fraud Alert: 2 Suspicious Transactions Detected</div>
+                <div class="fraud-alert-desc">Unusual repayment patterns flagged for members M-0842 and M-0911. Review recommended.</div>
+            </div>
+            <button class="btn btn-outline btn-sm">Review</button>
+        </div>
+
+        <!-- Bank Stats -->
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-users"></i></div>
+                    <span class="stat-card-trend up"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 12%</span>
+                </div>
+                <div class="stat-card-value">248</div>
+                <div class="stat-card-label">Total Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-piggy-bank"></i></div>
+                    <span class="stat-card-trend up"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 8.4%</span>
+                </div>
+                <div class="stat-card-value">$184,320</div>
+                <div class="stat-card-label">Total Savings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-hand-holding-dollar"></i></div>
+                    <span class="stat-card-trend down"><i class="fas fa-arrow-down" style="font-size:10px;"></i> 3.2%</span>
+                </div>
+                <div class="stat-card-value">$92,100</div>
+                <div class="stat-card-label">Active Loans</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon red"><i class="fas fa-circle-exclamation"></i></div>
+                    <span class="stat-card-trend up" style="background:rgba(192,57,43,0.1);color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 2</span>
+                </div>
+                <div class="stat-card-value">3</div>
+                <div class="stat-card-label">Overdue Loans</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="two-col">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Savings & Loans Trend</div>
+                    <div class="chart-filters">
+                        <button class="chart-filter active">Month</button>
+                        <button class="chart-filter">Quarter</button>
+                        <button class="chart-filter">Year</button>
+                    </div>
+                </div>
+                <div class="bar-chart">
+                    <div class="bar-group">
+                        <div class="bar" style="height:60%;background:var(--primary);"><span class="bar-value">$12k</span></div>
+                        <div class="bar-label">Jan</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:75%;background:var(--primary);"><span class="bar-value">$15k</span></div>
+                        <div class="bar-label">Feb</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:50%;background:var(--primary);"><span class="bar-value">$10k</span></div>
+                        <div class="bar-label">Mar</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:85%;background:var(--primary);"><span class="bar-value">$17k</span></div>
+                        <div class="bar-label">Apr</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:70%;background:var(--primary);"><span class="bar-value">$14k</span></div>
+                        <div class="bar-label">May</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:90%;background:var(--primary);"><span class="bar-value">$18k</span></div>
+                        <div class="bar-label">Jun</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:100%;background:var(--accent);"><span class="bar-value">$20k</span></div>
+                        <div class="bar-label">Jul</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Loan Portfolio</div>
+                </div>
+                <div class="donut-chart">
+                    <svg viewBox="0 0 100 100" width="160" height="160">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success)" stroke-width="12"
+                            stroke-dasharray="150.8 251.3" stroke-dashoffset="0" stroke-linecap="round"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
+                            stroke-dasharray="75.4 251.3" stroke-dashoffset="-150.8" stroke-linecap="round"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--danger)" stroke-width="12"
+                            stroke-dasharray="25.1 251.3" stroke-dashoffset="-226.2" stroke-linecap="round"/>
+                    </svg>
+                    <div class="donut-center">
+                        <div class="num">92%</div>
+                        <div class="label">Repayment</div>
+                    </div>
+                </div>
+                <div class="donut-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--success);"></div>
+                        <span>On Track</span>
+                        <span class="legend-val">60%</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--accent);"></div>
+                        <span>Pending</span>
+                        <span class="legend-val">30%</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--danger);"></div>
+                        <span>Overdue</span>
+                        <span class="legend-val">10%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Recent Transactions</div>
+                <div class="table-actions">
+                    <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                    <button class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Export</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">AN</div>
+                                <div>
+                                    <div class="member-name">Aisha Nalwoga</div>
+                                    <div class="member-phone">+256 701 234 567</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
+                        <td class="amount positive">+$150.00</td>
+                        <td>Jul 18, 2026</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--info);">PK</div>
+                                <div>
+                                    <div class="member-name">Patrick Kato</div>
+                                    <div class="member-phone">+256 702 345 678</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color:var(--accent);"><i class="fas fa-hand-holding-dollar" style="font-size:10px;"></i> Loan Repay</span></td>
+                        <td class="amount positive">+$45.00</td>
+                        <td>Jul 18, 2026</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--danger);">SN</div>
+                                <div>
+                                    <div class="member-name">Sarah Namuli</div>
+                                    <div class="member-phone">+256 703 456 789</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> Withdrawal</span></td>
+                        <td class="amount negative">-$200.00</td>
+                        <td>Jul 17, 2026</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--accent);">JM</div>
+                                <div>
+                                    <div class="member-name">James Mukasa</div>
+                                    <div class="member-phone">+256 704 567 890</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color:var(--accent);"><i class="fas fa-hand-holding-dollar" style="font-size:10px;"></i> Loan Disbursed</span></td>
+                        <td class="amount negative">-$500.00</td>
+                        <td>Jul 17, 2026</td>
+                        <td><span class="status-badge status-pending"><i class="fas fa-clock" style="font-size:8px;"></i> Processing</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
+                                <div>
+                                    <div class="member-name">Grace Nakato</div>
+                                    <div class="member-phone">+256 705 678 901</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
+                        <td class="amount positive">+$75.00</td>
+                        <td>Jul 16, 2026</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- MY SAVINGS PAGE -->
+    <div class="page-content tab-panel" id="page-my-savings">
+        <div class="page-header">
+            <h1>My Savings</h1>
+            <p>Your personal savings account at Kyamulibwa Village Bank</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-wallet"></i></div>
+                </div>
+                <div class="stat-card-value">$4,250</div>
+                <div class="stat-card-label">Total Savings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-calendar"></i></div>
+                </div>
+                <div class="stat-card-value">$350</div>
+                <div class="stat-card-label">This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-percentage"></i></div>
+                </div>
+                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-label">Interest Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-coins"></i></div>
+                </div>
+                <div class="stat-card-value">$221</div>
+                <div class="stat-card-label">Interest Earned</div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">My Savings Growth</div>
+                </div>
+                <div class="bar-chart">
+                    <div class="bar-group">
+                        <div class="bar" style="height:20%;background:var(--primary);"><span class="bar-value">$1.2k</span></div>
+                        <div class="bar-label">Jan</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:35%;background:var(--primary);"><span class="bar-value">$1.8k</span></div>
+                        <div class="bar-label">Feb</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:45%;background:var(--primary);"><span class="bar-value">$2.3k</span></div>
+                        <div class="bar-label">Mar</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:55%;background:var(--primary);"><span class="bar-value">$2.8k</span></div>
+                        <div class="bar-label">Apr</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:70%;background:var(--primary);"><span class="bar-value">$3.4k</span></div>
+                        <div class="bar-label">May</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:85%;background:var(--primary);"><span class="bar-value">$3.9k</span></div>
+                        <div class="bar-label">Jun</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" style="height:100%;background:var(--accent);"><span class="bar-value">$4.3k</span></div>
+                        <div class="bar-label">Jul</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-title">Savings Breakdown</div>
+                </div>
+                <div class="donut-chart">
+                    <svg viewBox="0 0 100 100" width="160" height="160">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--primary)" stroke-width="12"
+                            stroke-dasharray="188.5 251.3" stroke-dashoffset="0" stroke-linecap="round"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
+                            stroke-dasharray="50.3 251.3" stroke-dashoffset="-188.5" stroke-linecap="round"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success)" stroke-width="12"
+                            stroke-dasharray="12.6 251.3" stroke-dashoffset="-238.8" stroke-linecap="round"/>
+                    </svg>
+                    <div class="donut-center">
+                        <div class="num">$4,250</div>
+                        <div class="label">Total</div>
+                    </div>
+                </div>
+                <div class="donut-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--primary);"></div>
+                        <span>Principal</span>
+                        <span class="legend-val">$3,750</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--accent);"></div>
+                        <span>Interest</span>
+                        <span class="legend-val">$221</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--success);"></div>
+                        <span>Bonus</span>
+                        <span class="legend-val">$279</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">My Transaction History</div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Type</th><th>Amount</th><th>Date</th><th>Balance After</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
+                        <td class="amount positive">+$150.00</td>
+                        <td>Jul 15, 2026</td>
+                        <td>$4,250.00</td>
+                    </tr>
+                    <tr>
+                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
+                        <td class="amount positive">+$200.00</td>
+                        <td>Jul 01, 2026</td>
+                        <td>$4,100.00</td>
+                    </tr>
+                    <tr>
+                        <td><span style="color:var(--accent);"><i class="fas fa-coins" style="font-size:10px;"></i> Interest</span></td>
+                        <td class="amount positive">+$18.20</td>
+                        <td>Jun 30, 2026</td>
+                        <td>$3,900.00</td>
+                    </tr>
+                    <tr>
+                        <td><span style="color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> Withdrawal</span></td>
+                        <td class="amount negative">-$100.00</td>
+                        <td>Jun 20, 2026</td>
+                        <td>$3,881.80</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MY LOANS PAGE -->
+    <div class="page-content tab-panel" id="page-my-loans">
+        <div class="page-header">
+            <h1>My Loans</h1>
+            <p>Your loan history and current status</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
+                </div>
+                <div class="stat-card-value">$0</div>
+                <div class="stat-card-label">Current Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-history"></i></div>
+                </div>
+                <div class="stat-card-value">3</div>
+                <div class="stat-card-label">Loans Taken</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-star"></i></div>
+                </div>
+                <div class="stat-card-value">847</div>
+                <div class="stat-card-label">Credit Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-percentage"></i></div>
+                </div>
+                <div class="stat-card-value">100%</div>
+                <div class="stat-card-label">Repayment Rate</div>
+            </div>
+        </div>
+
+        <div class="ai-insight">
+            <div class="ai-insight-icon"><i class="fas fa-robot"></i></div>
+            <div class="ai-insight-text">
+                <strong>AI Credit Insight:</strong> Your excellent repayment history and consistent savings pattern give you a credit score of 847. You are eligible for loans up to <strong>$5,000</strong> at the preferred 8% interest rate. Your next eligibility review is in 15 days.
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Loan History</div>
+                <div class="table-actions">
+                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Request New Loan</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Loan ID</th><th>Amount</th><th>Interest</th><th>Duration</th><th>Paid</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>L-2024-0042</td>
+                        <td class="amount">$800</td>
+                        <td>10% / year</td>
+                        <td>6 months</td>
+                        <td>$880</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
+                    </tr>
+                    <tr>
+                        <td>L-2024-0018</td>
+                        <td class="amount">$500</td>
+                        <td>12% / year</td>
+                        <td>4 months</td>
+                        <td>$520</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
+                    </tr>
+                    <tr>
+                        <td>L-2023-0091</td>
+                        <td class="amount">$300</td>
+                        <td>12% / year</td>
+                        <td>3 months</td>
+                        <td>$309</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MEMBERS PAGE -->
+    <div class="page-content tab-panel" id="page-members">
+        <div class="page-header">
+            <h1>All Members</h1>
+            <p>Manage village bank members and their accounts</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-card-value" id="totalMembersCount">248</div>
+                <div class="stat-card-label">Total Members</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-user-plus"></i></div>
+                </div>
+                <div class="stat-card-value">18</div>
+                <div class="stat-card-label">New This Month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-star"></i></div>
+                </div>
+                <div class="stat-card-value">156</div>
+                <div class="stat-card-label">Active Savers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon red"><i class="fas fa-triangle-exclamation"></i></div>
+                </div>
+                <div class="stat-card-value">12</div>
+                <div class="stat-card-label">At Risk</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Member Directory</div>
+                <div class="table-actions">
+                    <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('addMemberModal')"><i class="fas fa-plus"></i> Add Member</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Joined</th>
+                        <th>Savings</th>
+                        <th>Loans</th>
+                        <th>Credit Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">AN</div>
+                                <div>
+                                    <div class="member-name">Aisha Nalwoga</div>
+                                    <div class="member-phone">M-0841</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>Mar 2024</td>
+                        <td class="amount positive">$2,340</td>
+                        <td class="amount">$0</td>
+                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 847</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--info);">PK</div>
+                                <div>
+                                    <div class="member-name">Patrick Kato</div>
+                                    <div class="member-phone">M-0842</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>Jun 2024</td>
+                        <td class="amount positive">$890</td>
+                        <td class="amount negative">$450</td>
+                        <td><span class="credit-score score-good"><i class="fas fa-star" style="font-size:9px;"></i> 721</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--danger);">SN</div>
+                                <div>
+                                    <div class="member-name">Sarah Namuli</div>
+                                    <div class="member-phone">M-0843</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>Aug 2024</td>
+                        <td class="amount positive">$1,120</td>
+                        <td class="amount negative">$200</td>
+                        <td><span class="credit-score score-fair"><i class="fas fa-star" style="font-size:9px;"></i> 634</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--accent);">JM</div>
+                                <div>
+                                    <div class="member-name">James Mukasa</div>
+                                    <div class="member-phone">M-0844</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>Oct 2024</td>
+                        <td class="amount positive">$3,500</td>
+                        <td class="amount">$0</td>
+                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 891</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
+                                <div>
+                                    <div class="member-name">Grace Nakato</div>
+                                    <div class="member-phone">M-0845</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>Jan 2025</td>
+                        <td class="amount positive">$5,600</td>
+                        <td class="amount negative">$1,200</td>
+                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 856</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- LOAN MANAGEMENT PAGE -->
+    <div class="page-content tab-panel" id="page-loans">
+        <div class="page-header">
+            <h1>Loan Management</h1>
+            <p>Track, approve, and manage all village bank loans</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-hand-holding-dollar"></i></div>
+                </div>
+                <div class="stat-card-value">$92,100</div>
+                <div class="stat-card-label">Total Disbursed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
+                </div>
+                <div class="stat-card-value">84%</div>
+                <div class="stat-card-label">Repayment Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-clock"></i></div>
+                </div>
+                <div class="stat-card-value">7</div>
+                <div class="stat-card-label">Pending Approval</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon red"><i class="fas fa-circle-exclamation"></i></div>
+                </div>
+                <div class="stat-card-value">3</div>
+                <div class="stat-card-label">Overdue</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'loans-all')">All Loans</div>
+            <div class="tab" onclick="switchTab(this, 'loans-pending')">Pending (7)</div>
+            <div class="tab" onclick="switchTab(this, 'loans-overdue')">Overdue (3)</div>
+            <div class="tab" onclick="switchTab(this, 'loans-paid')">Paid Off</div>
+        </div>
+
+        <div class="tab-panel active" id="loans-all">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Active Loans</div>
+                    <div class="table-actions">
+                        <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                        <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Loan</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Amount</th>
+                            <th>Interest</th>
+                            <th>Duration</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar" style="background:var(--info);">PK</div>
+                                    <div class="member-name">Patrick Kato</div>
+                                </div>
+                            </td>
+                            <td class="amount">$500</td>
+                            <td>12% / year</td>
+                            <td>6 months</td>
+                            <td>
+                                <div class="loan-progress-mini">
+                                    <div class="bar"><div class="fill" style="width:55%;background:var(--success);"></div></div>
+                                    <div class="label">$275 / $225 left</div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> On Track</span></td>
+                            <td><button class="btn btn-outline btn-sm">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar" style="background:var(--danger);">SN</div>
+                                    <div class="member-name">Sarah Namuli</div>
+                                </div>
+                            </td>
+                            <td class="amount">$300</td>
+                            <td>10% / year</td>
+                            <td>4 months</td>
+                            <td>
+                                <div class="loan-progress-mini">
+                                    <div class="bar"><div class="fill" style="width:33%;background:var(--accent);"></div></div>
+                                    <div class="label">$100 / $200 left</div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge status-pending"><i class="fas fa-clock" style="font-size:8px;"></i> At Risk</span></td>
+                            <td><button class="btn btn-outline btn-sm">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar" style="background:#8e44ad;">GN</div>
+                                    <div class="member-name">Grace Nakato</div>
+                                </div>
+                            </td>
+                            <td class="amount">$1,200</td>
+                            <td>8% / year</td>
+                            <td>12 months</td>
+                            <td>
+                                <div class="loan-progress-mini">
+                                    <div class="bar"><div class="fill" style="width:75%;background:var(--success);"></div></div>
+                                    <div class="label">$900 / $300 left</div>
+                                </div>
+                            </td>
+                            <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> On Track</span></td>
+                            <td><button class="btn btn-outline btn-sm">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="loans-pending">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Pending Loan Applications</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Member</th><th>Amount</th><th>Purpose</th><th>Credit Score</th><th>AI Risk</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar">DK</div>
+                                    <div class="member-name">David Kasule</div>
+                                </div>
+                            </td>
+                            <td class="amount">$800</td>
+                            <td>Farm equipment</td>
+                            <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 812</span></td>
+                            <td><span style="color:var(--success);font-weight:600;">Low (12%)</span></td>
+                            <td>
+                                <button class="btn btn-primary btn-sm">Approve</button>
+                                <button class="btn btn-outline btn-sm">Reject</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar" style="background:var(--accent);">MN</div>
+                                    <div class="member-name">Mary Nambi</div>
+                                </div>
+                            </td>
+                            <td class="amount">$350</td>
+                            <td>Small business</td>
+                            <td><span class="credit-score score-good"><i class="fas fa-star" style="font-size:9px;"></i> 745</span></td>
+                            <td><span style="color:var(--accent);font-weight:600;">Medium (34%)</span></td>
+                            <td>
+                                <button class="btn btn-primary btn-sm">Approve</button>
+                                <button class="btn btn-outline btn-sm">Reject</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="loans-overdue">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Overdue Loans</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Member</th><th>Amount</th><th>Overdue By</th><th>Missed Payments</th><th>AI Recommendation</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar" style="background:var(--danger);">RO</div>
+                                    <div class="member-name">Robert Ojok</div>
+                                </div>
+                            </td>
+                            <td class="amount negative">$600</td>
+                            <td><span style="color:var(--danger);font-weight:600;">14 days</span></td>
+                            <td>2 payments</td>
+                            <td><span style="color:var(--accent);">⚠️ Restructure loan</span></td>
+                            <td>
+                                <button class="btn btn-outline btn-sm">Contact</button>
+                                <button class="btn btn-outline btn-sm">Restructure</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="loans-paid">
+            <div class="table-card">
+                <div class="table-header">
+                    <div class="table-title">Paid Off Loans</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Member</th><th>Amount</th><th>Interest</th><th>Paid</th><th>Completed</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="member-cell">
+                                    <div class="member-avatar">JD</div>
+                                    <div class="member-name">John Doe</div>
+                                </div>
+                            </td>
+                            <td class="amount">$800</td>
+                            <td>10% / year</td>
+                            <td>$880</td>
+                            <td>Mar 2025</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FRAUD DETECTION PAGE -->
+    <div class="page-content tab-panel" id="page-fraud">
+        <div class="page-header">
+            <h1>Fraud Detection</h1>
+            <p>AI-powered real-time fraud monitoring and alerts</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon red"><i class="fas fa-shield-halved"></i></div>
+                </div>
+                <div class="stat-card-value">2</div>
+                <div class="stat-card-label">Active Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
+                </div>
+                <div class="stat-card-value">99.2%</div>
+                <div class="stat-card-label">Accuracy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-eye"></i></div>
+                </div>
+                <div class="stat-card-value">1,240</div>
+                <div class="stat-card-label">Transactions Monitored</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-clock-rotate-left"></i></div>
+                </div>
+                <div class="stat-card-value">0.3s</div>
+                <div class="stat-card-label">Detection Time</div>
+            </div>
+        </div>
+
+        <div class="fraud-alert">
+            <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="fraud-alert-content">
+                <div class="fraud-alert-title">Alert #F-2026-0842: Unusual Repayment Pattern</div>
+                <div class="fraud-alert-desc">Member Patrick Kato (M-0842) made 3 large repayments in 48 hours after 2 months of missed payments. AI confidence: 87%. Possible loan cycling or external funding.</div>
+            </div>
+            <button class="btn btn-outline btn-sm">Investigate</button>
+            <button class="btn btn-primary btn-sm">Mark Safe</button>
+        </div>
+
+        <div class="fraud-alert">
+            <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="fraud-alert-content">
+                <div class="fraud-alert-title">Alert #F-2026-0911: Suspicious Withdrawal Pattern</div>
+                <div class="fraud-alert-desc">Member Robert Ojok (M-0911) withdrew 80% of savings immediately after receiving loan disbursement. AI confidence: 92%. Potential fraud risk.</div>
+            </div>
+            <button class="btn btn-outline btn-sm">Investigate</button>
+            <button class="btn btn-primary btn-sm">Mark Safe</button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Resolved Alerts</div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Alert ID</th><th>Member</th><th>Type</th><th>Date</th><th>Resolution</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>F-2026-0078</td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">AN</div>
+                                <div class="member-name">Aisha Nalwoga</div>
+                            </div>
+                        </td>
+                        <td>Duplicate deposit</td>
+                        <td>Jul 10, 2026</td>
+                        <td>Confirmed: Mobile money retry</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Safe</span></td>
+                    </tr>
+                    <tr>
+                        <td>F-2026-0056</td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--info);">PK</div>
+                                <div class="member-name">Patrick Kato</div>
+                            </div>
+                        </td>
+                        <td>Large withdrawal</td>
+                        <td>Jul 05, 2026</td>
+                        <td>Confirmed: School fees payment</td>
+                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Safe</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- SAVINGS POOL PAGE -->
+    <div class="page-content tab-panel" id="page-savings">
+        <div class="page-header">
+            <h1>Savings Pool</h1>
+            <p>Overview of all member savings and pool health</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-piggy-bank"></i></div>
+                </div>
+                <div class="stat-card-value">$184,320</div>
+                <div class="stat-card-label">Total Savings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-users"></i></div>
+                </div>
+                <div class="stat-card-value">156</div>
+                <div class="stat-card-label">Active Savers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-percentage"></i></div>
+                </div>
+                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-label">Avg Interest Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-coins"></i></div>
+                </div>
+                <div class="stat-card-value">$9,584</div>
+                <div class="stat-card-label">Interest Paid YTD</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Top Savers</div>
+                <div class="table-actions">
+                    <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                    <button class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Export</button>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Rank</th><th>Member</th><th>Total Saved</th><th>This Year</th><th>Interest Earned</th><th>Streak</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span style="color:var(--accent);font-weight:700;">#1</span></td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
+                                <div class="member-name">Grace Nakato</div>
+                            </div>
+                        </td>
+                        <td class="amount positive">$5,600</td>
+                        <td class="amount positive">$2,100</td>
+                        <td class="amount positive">$291</td>
+                        <td><span style="color:var(--success);font-weight:600;">18 months</span></td>
+                    </tr>
+                    <tr>
+                        <td><span style="color:var(--text-dim);font-weight:700;">#2</span></td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--accent);">JM</div>
+                                <div class="member-name">James Mukasa</div>
+                            </div>
+                        </td>
+                        <td class="amount positive">$3,500</td>
+                        <td class="amount positive">$1,800</td>
+                        <td class="amount positive">$182</td>
+                        <td><span style="color:var(--success);font-weight:600;">12 months</span></td>
+                    </tr>
+                    <tr>
+                        <td><span style="color:var(--accent);font-weight:700;">#3</span></td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">AN</div>
+                                <div class="member-name">Aisha Nalwoga</div>
+                            </div>
+                        </td>
+                        <td class="amount positive">$2,340</td>
+                        <td class="amount positive">$890</td>
+                        <td class="amount positive">$122</td>
+                        <td><span style="color:var(--success);font-weight:600;">10 months</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- REPORTS PAGE -->
+    <div class="page-content tab-panel" id="page-reports">
+        <div class="page-header">
+            <h1>Reports</h1>
+            <p>Generate and download financial reports</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-file-invoice-dollar"></i></div>
+                </div>
+                <div class="stat-card-value">12</div>
+                <div class="stat-card-label">Reports Generated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-calendar-check"></i></div>
+                </div>
+                <div class="stat-card-value">Jul 2026</div>
+                <div class="stat-card-label">Current Period</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Available Reports</div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Report Name</th><th>Period</th><th>Generated</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Monthly Financial Statement</td>
+                        <td>July 2026</td>
+                        <td>Jul 18, 2026</td>
+                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Loan Portfolio Report</td>
+                        <td>Q2 2026</td>
+                        <td>Jun 30, 2026</td>
+                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Member Activity Report</td>
+                        <td>June 2026</td>
+                        <td>Jul 01, 2026</td>
+                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Fraud Detection Summary</td>
+                        <td>Q2 2026</td>
+                        <td>Jun 30, 2026</td>
+                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page-content tab-panel" id="page-settings">
+        <div class="page-header">
+            <h1>Configuration</h1>
+            <p>Manage village bank settings and preferences</p>
+        </div>
+
+        <div class="cards-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon blue"><i class="fas fa-building"></i></div>
+                </div>
+                <div class="stat-card-value">Kyamulibwa</div>
+                <div class="stat-card-label">Village Bank Name</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon green"><i class="fas fa-percentage"></i></div>
+                </div>
+                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-label">Savings Interest</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon gold"><i class="fas fa-hand-holding-dollar"></i></div>
+                </div>
+                <div class="stat-card-value">8-12%</div>
+                <div class="stat-card-label">Loan Interest Range</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-icon red"><i class="fas fa-ban"></i></div>
+                </div>
+                <div class="stat-card-value">$5,000</div>
+                <div class="stat-card-label">Max Loan Amount</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header">
+                <div class="table-title">Bank Configuration</div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Setting</th><th>Current Value</th><th>Description</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><i class="fas fa-percentage" style="color:var(--primary);margin-right:8px;"></i> Savings Interest Rate</td>
+                        <td><strong>5.2%</strong></td>
+                        <td>Annual interest paid on member savings</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-hand-holding-dollar" style="color:var(--primary);margin-right:8px;"></i> Base Loan Interest</td>
+                        <td><strong>12%</strong></td>
+                        <td>Default annual interest for new loans</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-star" style="color:var(--primary);margin-right:8px;"></i> Preferred Member Rate</td>
+                        <td><strong>8%</strong></td>
+                        <td>Reduced rate for members with score 800+</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-money-bill-wave" style="color:var(--primary);margin-right:8px;"></i> Minimum Deposit</td>
+                        <td><strong>$5</strong></td>
+                        <td>Minimum amount per deposit transaction</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-clock" style="color:var(--primary);margin-right:8px;"></i> Loan Approval</td>
+                        <td><strong>Manual</strong></td>
+                        <td>Require admin approval for all loans</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                    <tr>
+                        <td><i class="fas fa-bell" style="color:var(--primary);margin-right:8px;"></i> SMS Reminders</td>
+                        <td><strong>Enabled</strong></td>
+                        <td>Send repayment reminders 3 days before due</td>
+                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- ADD MEMBER MODAL -->
+<div class="modal-overlay" id="addMemberModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>Add Member</h2>
+            <button class="modal-close" onclick="closeModal('addMemberModal')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-error" id="addMemberError" style="display: none; color: #c0392b; background: #fdf2f2; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;"></div>
+            <div class="form-group">
+                <label>Full name</label>
+                <input type="text" id="newMemberName" placeholder="e.g. Chimwemwe Banda">
+            </div>
+            <div class="form-group">
+                <label>Email or phone (used to log in)</label>
+                <input type="text" id="newMemberIdentifier" placeholder="e.g. chimwemwe@example.com">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="newMemberRole">
+                    <option value="member" selected>Member</option>
+                    <option value="treasurer">Treasurer</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Temporary password</label>
+                <input type="password" id="newMemberPassword" placeholder="Minimum 8 characters">
+                <small style="color:var(--text-dim);">Share this with the member directly — they can change it after their first login.</small>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('addMemberModal')">Cancel</button>
+            <button class="btn btn-primary" id="addMemberSubmitBtn" onclick="submitAddMember()">
+                <i class="fas fa-plus"></i> Add Member
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- REQUEST MOUNT MODAL -->
+<div class="modal-overlay" id="requestMountModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>Request Mount (loan)</h2>
+            <button class="modal-close" onclick="closeModal('requestMountModal')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Mount Amount (MWK)</label>
+                <input type="number" id="mountAmount" placeholder="Enter amount in kwacha" min="0">
+            </div>
+            <div class="form-group">
+                <label>Purpose</label>
+                <select id="mountPurpose">
+                    <option value="">Select purpose</option>
+                    <option value="operational">Operational Funds</option>
+                    <option value="emergency">Emergency Fund</option>
+                    <option value="expansion">Expansion</option>
+                    <option value="loan_disbursement">Loan Disbursement</option>
+                    <option value="member_support">Member Support</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="mountDescription" placeholder="Provide details about the mount request" rows="4"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('requestMountModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmMountRequest()">Review & Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- REQUEST MOUNT CONFIRMATION MODAL -->
+<div class="modal-overlay" id="confirmMountModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>Confirm Mount Request</h2>
+            <button class="modal-close" onclick="closeModal('confirmMountModal')"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="confirmation-summary">
+                <div class="summary-item">
+                    <span class="summary-label">Amount:</span>
+                    <span class="summary-value" id="confirmAmount"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Purpose:</span>
+                    <span class="summary-value" id="confirmPurpose"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Description:</span>
+                    <span class="summary-value" id="confirmDescription"></span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Requested By:</span>
+                    <span class="summary-value">John Doe (Bank Chairman)</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Date:</span>
+                    <span class="summary-value" id="confirmDate"></span>
+                </div>
+            </div>
+            <div class="confirmation-warning">
+                <i class="fas fa-info-circle"></i>
+                <p>Please review the details carefully. This request will be submitted for approval.</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('confirmMountModal')">Cancel</button>
+            <button class="btn btn-success" onclick="submitMountRequest()">
+                <i class="fas fa-check"></i> Confirm & Submit
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchPage(page) {
+    // Hide all pages
+    document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+    // Show selected page
+    document.getElementById('page-' + page).classList.add('active');
+
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+}
+
+function switchTab(tab, panelId) {
+    // Update tab active state
+    const parent = tab.parentElement;
+    parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    // Show corresponding panel
+    const panels = parent.nextElementSibling.parentElement.querySelectorAll('.tab-panel');
+    panels.forEach(p => p.classList.remove('active'));
+    document.getElementById(panelId).classList.add('active');
+}
+
+// Modal Functions
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+}
+
+// Close modal when clicking overlay
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
+});
+
+// Confirm Mount Request
+function confirmMountRequest() {
+    const amount = document.getElementById('mountAmount').value;
+    const purpose = document.getElementById('mountPurpose').value;
+    const description = document.getElementById('mountDescription').value;
+    
+    // Validate inputs
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!purpose) {
+        alert('Please select a purpose');
+        return;
+    }
+    
+    if (!description || description.trim().length < 10) {
+        alert('Please provide a description (at least 10 characters)');
+        return;
+    }
+    
+    // Populate confirmation modal
+    const purposeMap = {
+        'operational': 'Operational Funds',
+        'emergency': 'Emergency Fund',
+        'expansion': 'Expansion',
+        'loan_disbursement': 'Loan Disbursement',
+        'member_support': 'Member Support',
+        'other': 'Other'
+    };
+    
+    document.getElementById('confirmAmount').textContent = 'MWK ' + parseInt(amount).toLocaleString();
+    document.getElementById('confirmPurpose').textContent = purposeMap[purpose];
+    document.getElementById('confirmDescription').textContent = description;
+    document.getElementById('confirmDate').textContent = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Close request modal and open confirmation modal
+    closeModal('requestMountModal');
+    openModal('confirmMountModal');
+}
+
+// Submit Mount Request
+function submitMountRequest() {
+    const amount = document.getElementById('mountAmount').value;
+    const purpose = document.getElementById('mountPurpose').value;
+    
+    // Show success message
+    alert(`Mount request for MWK ${parseInt(amount).toLocaleString()} has been submitted successfully for approval!`);
+    
+    // Reset form
+    document.getElementById('mountAmount').value = '';
+    document.getElementById('mountPurpose').value = '';
+    document.getElementById('mountDescription').value = '';
+    
+    // Close confirmation modal
+    closeModal('confirmMountModal');
+}
+// ==================== ADD MEMBER ====================
+// Change this if your API runs somewhere other than localhost:8000
+const API_BASE = "http://localhost:8000";
+
+function resetAddMemberForm() {
+    document.getElementById('newMemberName').value = '';
+    document.getElementById('newMemberIdentifier').value = '';
+    document.getElementById('newMemberRole').value = 'member';
+    document.getElementById('newMemberPassword').value = '';
+    const errorBox = document.getElementById('addMemberError');
+    errorBox.style.display = 'none';
+    errorBox.innerText = '';
+}
+
+function memberInitials(name) {
+    return name.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+}
+
+function creditScoreClass(score) {
+    if (score >= 800) return 'score-excellent';
+    if (score >= 650) return 'score-good';
+    return 'score-fair';
+}
+
+// Adds the new member straight into the Member Directory table so the admin
+// sees them immediately. Note: the rest of this table is still static demo
+// data (not yet loaded from the API), so this only affects rows added this way.
+function appendMemberRow(member) {
+    const tbody = document.querySelector('#page-members table tbody');
+    if (!tbody) return;
+
+    const avatarColors = ['var(--info)', 'var(--danger)', 'var(--accent)', '#8e44ad', 'var(--primary)'];
+    const color = avatarColors[Math.floor(Math.random() * avatarColors.length)];
+    const joined = new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>
+            <div class="member-cell">
+                <div class="member-avatar" style="background:${color};">${memberInitials(member.full_name)}</div>
+                <div>
+                    <div class="member-name">${member.full_name}</div>
+                    <div class="member-phone">${member.member_id}</div>
+                </div>
+            </div>
+        </td>
+        <td>${joined}</td>
+        <td class="amount positive">$${member.savings_balance.toFixed(0)}</td>
+        <td class="amount">$0</td>
+        <td><span class="credit-score ${creditScoreClass(member.credit_score)}"><i class="fas fa-star" style="font-size:9px;"></i> ${member.credit_score}</span></td>
+        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+    `;
+    tbody.prepend(row);
+
+    const countEl = document.getElementById('totalMembersCount');
+    if (countEl) {
+        countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+    }
+}
+
+async function submitAddMember() {
+    const fullName = document.getElementById('newMemberName').value.trim();
+    const identifier = document.getElementById('newMemberIdentifier').value.trim();
+    const role = document.getElementById('newMemberRole').value;
+    const password = document.getElementById('newMemberPassword').value;
+    const errorBox = document.getElementById('addMemberError');
+    const submitBtn = document.getElementById('addMemberSubmitBtn');
+
+    errorBox.style.display = 'none';
+    errorBox.innerText = '';
+
+    if (!fullName || !identifier || !password) {
+        errorBox.innerText = 'Please fill in name, email/phone, and a temporary password.';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (password.length < 8) {
+        errorBox.innerText = 'Password must be at least 8 characters long.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    // Falls back to the seeded demo group (id 1) if there's no active session yet —
+    // real admin sessions set this in sessionStorage during login.
+    const groupId = sessionStorage.getItem('titukulane_group_id') || 1;
+
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = 'Adding…';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch(`${API_BASE}/api/groups/${groupId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                full_name: fullName,
+                identifier: identifier,
+                email: identifier.includes('@') ? identifier : null,
+                phone: identifier.includes('@') ? null : identifier,
+                role: role,
+                initial_password: password
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            errorBox.innerText = data.detail || 'Could not add this member. Please try again.';
+            errorBox.style.display = 'block';
+            return;
+        }
+
+        appendMemberRow(data);
+        closeModal('addMemberModal');
+        alert(`${data.full_name} was added successfully.\n\nShare their login details:\nGroup name + Identifier: ${data.identifier}\nTemporary password: ${password}`);
+        resetAddMemberForm();
+    } catch (err) {
+        errorBox.innerText = 'Could not reach the server. Check your connection and try again.';
+        errorBox.style.display = 'block';
+    } finally {
+        submitBtn.innerHTML = originalBtnHtml;
+        submitBtn.disabled = false;
+    }
+}
+</script>
+
+</body>
+</html>
