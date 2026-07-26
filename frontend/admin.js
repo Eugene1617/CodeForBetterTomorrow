@@ -147,7 +147,7 @@ function renderDashboard(data) {
     // Balance
     const balanceEl = document.querySelector('.balance-amount');
     if (balanceEl) {
-        balanceEl.textContent = `$${data.member.savings_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        balanceEl.textContent = `MWK ${data.member.savings_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
     // Interest rate
@@ -162,7 +162,7 @@ function renderDashboard(data) {
 
     // Profile stats
     const profileStats = document.querySelectorAll('.profile-stat .num');
-    if (profileStats[0]) profileStats[0].textContent = `$${data.member.savings_balance.toLocaleString()}`;
+    if (profileStats[0]) profileStats[0].textContent = `MWK ${data.member.savings_balance.toLocaleString()}`;
     if (profileStats[1]) profileStats[1].textContent = data.member.credit_score;
     if (profileStats[2]) profileStats[2].textContent = data.group.total_members;
 
@@ -191,8 +191,8 @@ function renderDashboard(data) {
         notifDot.style.display = data.unread_notifications > 0 ? 'block' : 'none';
     }
 
-    // Chart
-    updateMetricsChart(data.member.savings_balance);
+    // Chart — use real transaction data, no fabricated history
+    updateMetricsChart(data.recent_transactions, data.member.savings_balance);
 }
 
 function renderSavingsGoal(goal) {
@@ -203,12 +203,12 @@ function renderSavingsGoal(goal) {
     const targetLeft = document.querySelector('.goal-stats .target');
 
     if (goalName) goalName.textContent = goal.name;
-    if (goalTarget) goalTarget.textContent = `Target: $${goal.target_amount.toLocaleString()}`;
+    if (goalTarget) goalTarget.textContent = `Target: MWK ${goal.target_amount.toLocaleString()}`;
 
     const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
     if (goalFill) goalFill.style.width = `${Math.min(pct, 100)}%`;
-    if (currentSaved) currentSaved.textContent = `$${goal.current_amount.toLocaleString()} saved`;
-    if (targetLeft) targetLeft.textContent = `$${Math.max(0, goal.target_amount - goal.current_amount).toLocaleString()} to go`;
+    if (currentSaved) currentSaved.textContent = `MWK ${goal.current_amount.toLocaleString()} saved`;
+    if (targetLeft) targetLeft.textContent = `MWK ${Math.max(0, goal.target_amount - goal.current_amount).toLocaleString()} to go`;
 }
 
 function renderTransactions(transactions) {
@@ -237,7 +237,7 @@ function renderTransactions(transactions) {
                 <div class="tx-sub">${escapeHtml(tx.description || tx.method || 'Transaction')}</div>
             </div>
             <div class="tx-amount">
-                <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</div>
+                <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}MWK ${tx.amount.toFixed(2)}</div>
                 <div class="date">${displayDate}</div>
             </div>
         </div>`;
@@ -266,25 +266,39 @@ function renderNotes(notes) {
     `).join('');
 }
 
-function updateMetricsChart(currentBalance) {
+function updateMetricsChart(transactions, currentBalance) {
     const canvas = document.getElementById('metricsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
     const ctx = canvas.getContext('2d');
-    new Chart(ctx, {
+
+    // Destroy existing chart instance if any
+    if (canvas._chartInstance) {
+        canvas._chartInstance.destroy();
+    }
+
+    // If no real transaction data, show a placeholder message instead of fabricated data
+    if (!transactions || transactions.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '14px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('No transaction data available for chart', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    // Build real chart data from transactions (sorted oldest first)
+    const sorted = [...transactions].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    const labels = sorted.map(tx => new Date(tx.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}));
+    const values = sorted.map(tx => tx.amount);
+
+    canvas._chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: labels,
             datasets: [{
-                label: 'Savings Balance',
-                data: [
-                    currentBalance * 0.5,
-                    currentBalance * 0.55,
-                    currentBalance * 0.65,
-                    currentBalance * 0.75,
-                    currentBalance * 0.9,
-                    currentBalance
-                ],
+                label: 'Transaction Amount',
+                data: values,
                 borderColor: '#1a5f3c',
                 backgroundColor: 'rgba(26, 95, 60, 0.05)',
                 borderWidth: 3,
@@ -318,7 +332,7 @@ function updateMetricsChart(currentBalance) {
                     ticks: {
                         font: { family: 'Inter', size: 11 },
                         color: '#6b7280',
-                        callback: function(value) { return '$' + value.toLocaleString(); }
+                        callback: function(value) { return 'MWK ' + value.toLocaleString(); }
                     }
                 },
                 x: {
@@ -328,6 +342,18 @@ function updateMetricsChart(currentBalance) {
             }
         }
     });
+}
+
+// ==================== PAYMENT METHOD MAPPING ====================
+// Maps frontend method names to backend PaymentMethod enum values
+function mapPaymentMethod(method) {
+    const map = {
+        'airtel': 'airtel_money',
+        'tnm': 'tnm_mpamba',
+        'bank': 'national_bank',
+        'cash': 'cash'
+    };
+    return map[method] || method;
 }
 
 // ==================== DEPOSIT ====================
@@ -399,7 +425,7 @@ async function confirmDeposit() {
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 amount: amount,
-                method: selectedDepositMethod,
+                method: mapPaymentMethod(selectedDepositMethod),
                 phone: document.querySelector('#phoneField input')?.value,
                 pin: passwordInput?.value
             })
@@ -408,7 +434,7 @@ async function confirmDeposit() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Deposit failed');
 
-        showToast(`Deposit successful! New balance: $${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Deposit successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
 
         if (passwordInput) passwordInput.value = '';
         closeModal('depositModal');
@@ -421,6 +447,14 @@ async function confirmDeposit() {
 }
 
 // ==================== WITHDRAWAL ====================
+let selectedWithdrawMethod = null;
+
+function selectWithdrawPayment(element, method) {
+    document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    selectedWithdrawMethod = method;
+}
+
 async function confirmWithdrawal() {
     if (!requireAuth()) return;
 
@@ -432,6 +466,11 @@ async function confirmWithdrawal() {
         return;
     }
 
+    if (!selectedWithdrawMethod) {
+        showToast('Please select a withdrawal method', 'error');
+        return;
+    }
+
     const btn = document.querySelector('#withdrawModal .modal-submit');
     setLoading(btn, true, 'Processing...');
 
@@ -439,13 +478,16 @@ async function confirmWithdrawal() {
         const res = await fetch(`${API_BASE}/members/${getMemberId()}/withdraw`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ amount: amount, method: 'cash' })
+            body: JSON.stringify({
+                amount: amount,
+                method: mapPaymentMethod(selectedWithdrawMethod)
+            })
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Withdrawal failed');
 
-        showToast(`Withdrawal successful! New balance: $${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Withdrawal successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
         closeModal('withdrawModal');
         loadDashboard();
     } catch (err) {
@@ -491,15 +533,15 @@ async function requestLoan() {
                 title: `${purposeSelect?.value || 'Personal'} Loan`,
                 purpose: purposeMap[purposeSelect?.value] || 'other',
                 principal: amount,
-                interest_rate: 8.0,
                 duration_months: durationMap[durationSelect?.value] || 12
+                // interest_rate removed — backend uses group default
             })
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Loan request failed');
 
-        showToast(`Loan submitted! ${data.loan_number}. Monthly: $${data.monthly_payment.toFixed(2)}`, 'success');
+        showToast(`Loan submitted! ${data.loan_number}. Monthly: MWK ${data.monthly_payment.toFixed(2)}`, 'success');
         closeModal('loanModal');
         loadDashboard();
     } catch (err) {
@@ -558,7 +600,7 @@ function renderLoanHistory(loans) {
                 </div>
                 <div class="loan-amount-row">
                     <div class="loan-amount-item">
-                        <div class="num">$${loan.principal.toLocaleString()}</div>
+                        <div class="num">MWK ${loan.principal.toLocaleString()}</div>
                         <div class="label">Principal</div>
                     </div>
                     <div class="loan-amount-item">
@@ -566,7 +608,7 @@ function renderLoanHistory(loans) {
                         <div class="label">Interest</div>
                     </div>
                     <div class="loan-amount-item">
-                        <div class="num">$${loan.total_paid.toLocaleString()}</div>
+                        <div class="num">MWK ${loan.total_paid.toLocaleString()}</div>
                         <div class="label">Total Paid</div>
                     </div>
                 </div>
@@ -628,7 +670,7 @@ function renderTransactionHistory(transactions) {
                     <div class="tx-sub">${escapeHtml(tx.description || 'Transaction')}</div>
                 </div>
                 <div class="tx-amount">
-                    <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</div>
+                    <div class="num ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}MWK ${tx.amount.toFixed(2)}</div>
                     <div class="date">${formatDateShort(tx.created_at)}</div>
                 </div>
             </div>`;
@@ -657,7 +699,8 @@ async function addNote() {
         const res = await fetch(`${API_BASE}/members/${getMemberId()}/notes`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ text: text, mood: '😊 Good' })
+            body: JSON.stringify({ text: text })
+            // mood omitted — backend uses its default (Mood.GOOD)
         });
 
         const data = await res.json();
@@ -741,19 +784,7 @@ async function sendMessage() {
 
         input.value = '';
         loadChatMessages();
-
-        // Simulate admin reply
-        setTimeout(async () => {
-            await fetch(`${API_BASE}/members/${getMemberId()}/messages`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    sender: 'admin',
-                    text: "Thank you for your message. We'll get back to you shortly!"
-                })
-            });
-            loadChatMessages();
-        }, 1000);
+        // No fake admin reply — only real messages from the API are displayed
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -779,7 +810,7 @@ async function loadProfile() {
         }
 
         const stats = document.querySelectorAll('.profile-stat .num');
-        if (stats[0]) stats[0].textContent = `$${member.savings_balance.toLocaleString()}`;
+        if (stats[0]) stats[0].textContent = `MWK ${member.savings_balance.toLocaleString()}`;
         if (stats[1]) stats[1].textContent = member.credit_score;
         if (stats[2]) stats[2].textContent = member.total_shares;
     } catch (err) {
@@ -902,7 +933,7 @@ async function downloadReport() {
                 <td>${formatDateShort(tx.date)}</td>
                 <td><strong>${formatType(tx.type)}</strong><br><small style="color:#6b7280;">${escapeHtml(tx.description || '')}</small></td>
                 <td>${tx.method || '—'}</td>
-                <td style="text-align:right;"><span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}$${tx.amount.toFixed(2)}</span></td>
+                <td style="text-align:right;"><span class="${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}MWK ${tx.amount.toFixed(2)}</span></td>
             </tr>`;
         }).join('');
 
@@ -941,7 +972,7 @@ async function downloadReport() {
             <div class="member-info">
                 <div class="info-row"><span class="info-label">Member Name:</span> <span class="info-value">${escapeHtml(data.member_name)}</span></div>
                 <div class="info-row"><span class="info-label">Member ID:</span> <span class="info-value">${data.member_id}</span></div>
-                <div class="info-row"><span class="info-label">Current Balance:</span> <span class="info-value">$${data.summary.current_balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+                <div class="info-row"><span class="info-label">Current Balance:</span> <span class="info-value">MWK ${data.summary.current_balance.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
                 <div class="info-row"><span class="info-label">Credit Score:</span> <span class="info-value">${data.summary.credit_score}</span></div>
                 <div class="info-row"><span class="info-label">Total Shares:</span> <span class="info-value">${data.summary.total_shares}</span></div>
                 <div class="info-row"><span class="info-label">Loans Paid Off:</span> <span class="info-value">${data.summary.loans_paid_off}</span></div>
