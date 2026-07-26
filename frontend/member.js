@@ -432,7 +432,7 @@ function renderNotes(notes) {
     }
 }
 
-function updateMetricsChart(safeBalance, transactions) {
+function updateMetricsChart(currentBalance, transactions) {
     const canvas = document.getElementById('metricsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
@@ -441,14 +441,14 @@ function updateMetricsChart(safeBalance, transactions) {
     }
 
     const ctx = canvas.getContext('2d');
-    const safeBalance = Number(safeBalance) || 0;
+    const chartBalance = Number(currentBalance) || 0;
     const safeTx = Array.isArray(transactions) ? transactions : [];
 
     // Build real chart data from transactions — no fake history
     let labels = [];
     let dataPoints = [];
 
-    if (transactions && transactions.length > 0) {
+    if (safeTx && safeTx.length > 0) {
         // Group by month and sum amounts (deposits positive, withdrawals negative)
         const monthly = {};
         safeTx.slice().reverse().forEach(tx => {
@@ -465,7 +465,7 @@ function updateMetricsChart(safeBalance, transactions) {
     // If no transaction history, show a single "Current Balance" point
     if (labels.length === 0) {
         labels = ['Current'];
-        dataPoints = [safeBalance];
+        dataPoints = [chartBalance];
     }
 
     metricsChartInstance = new Chart(ctx, {
