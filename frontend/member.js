@@ -101,7 +101,6 @@ function openModal(id) {
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
     }
-    // Load fresh data for modals that show server-backed content
     if (id === 'notifModal') loadNotifications();
 }
 
@@ -165,7 +164,6 @@ function money(amount) {
 }
 
 // Frontend uses short payment-method codes; the API expects its enum values.
-// This maps between the two so requests always validate on the backend.
 const METHOD_MAP = {
     tnm: 'tnm_mpamba',
     airtel: 'airtel_money',
@@ -255,8 +253,8 @@ function renderDashboard(data) {
         notifDot.style.display = data.unread_notifications > 0 ? 'block' : 'none';
     }
 
-    // Chart
-    updateMetricsChart(data.member.savings_balance);
+    // Chart — uses real transaction data, no fake history
+    updateMetricsChart(data.member.savings_balance, data.recent_transactions);
 }
 
 function renderSavingsGoal(goal) {
@@ -409,35 +407,52 @@ function renderNotes(notes) {
     }
 }
 
-function updateMetricsChart(currentBalance) {
+function updateMetricsChart(currentBalance, transactions) {
     const canvas = document.getElementById('metricsChart');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    // Safely destroy previous instance to prevent canvas rendering errors
     if (metricsChartInstance !== null) {
         metricsChartInstance.destroy();
     }
 
     const ctx = canvas.getContext('2d');
+
+    // Build real chart data from transactions — no fake history
+    let labels = [];
+    let dataPoints = [];
+
+    if (transactions && transactions.length > 0) {
+        // Group by month and sum amounts (deposits positive, withdrawals negative)
+        const monthly = {};
+        transactions.slice().reverse().forEach(tx => {
+            const d = new Date(tx.created_at);
+            const key = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            if (!monthly[key]) monthly[key] = 0;
+            const isPositive = ['deposit', 'interest', 'loan_disbursement'].includes(tx.type);
+            monthly[key] += isPositive ? tx.amount : -tx.amount;
+        });
+        labels = Object.keys(monthly);
+        dataPoints = Object.values(monthly);
+    }
+
+    // If no transaction history, show a single "Current Balance" point
+    if (labels.length === 0) {
+        labels = ['Current'];
+        dataPoints = [currentBalance];
+    }
+
     metricsChartInstance = new Chart(ctx, {
-        type: 'line',
+        type: labels.length > 1 ? 'line' : 'bar',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: labels,
             datasets: [{
-                label: 'Savings Balance',
-                data: [
-                    currentBalance * 0.5,
-                    currentBalance * 0.55,
-                    currentBalance * 0.65,
-                    currentBalance * 0.75,
-                    currentBalance * 0.9,
-                    currentBalance
-                ],
+                label: labels.length > 1 ? 'Monthly Net Savings' : 'Savings Balance',
+                data: dataPoints,
                 borderColor: '#1a5f3c',
-                backgroundColor: 'rgba(26, 95, 60, 0.05)',
+                backgroundColor: 'rgba(26, 95, 60, 0.15)',
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4,
+                tension: 0.3,
                 pointRadius: 5,
                 pointBackgroundColor: '#1a5f3c',
                 pointBorderColor: '#ffffff',
@@ -461,7 +476,7 @@ function updateMetricsChart(currentBalance) {
             },
             scales: {
                 y: {
-                    beginAtZero: true,
+                    beginAtZero: false,
                     grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
                     ticks: {
                         font: { family: 'Inter', size: 11 },
@@ -516,8 +531,16 @@ async function confirmDeposit() {
     const passwordInput = document.getElementById('depositPassword');
     const amount = parseFloat(amountInput?.value);
 
-    if (!amount || amount <= 0) {
-        showToast('Please enter a valid amount', 'error');
+    // Validate amount is provided by user
+    if (!amountInput || !amountInput.value.trim()) {
+        showToast('Please enter the amount you want to deposit', 'error');
+        amountInput?.focus();
+        return;
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+        showToast('Please enter a valid amount greater than 0', 'error');
+        amountInput?.focus();
         return;
     }
 
@@ -548,8 +571,8 @@ async function confirmDeposit() {
             body: JSON.stringify({
                 amount: amount,
                 method: METHOD_MAP[selectedDepositMethod] || selectedDepositMethod,
-                phone: document.querySelector('#phoneField input')?.value,
-                pin: passwordInput?.value
+                phone: document.querySelector('#phoneField input')?.value || null,
+                pin: passwordInput?.value || null
             })
         });
 
@@ -559,10 +582,12 @@ async function confirmDeposit() {
         showToast(`Deposit successful! New balance: ${money(data.new_balance)}`, 'success');
 
         if (passwordInput) passwordInput.value = '';
+        if (amountInput) amountInput.value = '';
         closeModal('depositModal');
         loadDashboard();
     } catch (err) {
         showToast(err.message, 'error');
+        console.error('Deposit error:', err);
     } finally {
         setLoading(btn, false);
     }
@@ -611,7 +636,7 @@ async function confirmWithdraw() {
             body: JSON.stringify({
                 amount: amount,
                 method: METHOD_MAP[selectedWithdrawMethod] || 'cash',
-                phone: document.getElementById('withdrawPhone')?.value
+                phone: document.getElementById('withdrawPhone')?.value || null
             })
         });
 
@@ -652,7 +677,6 @@ async function submitLoanRequest() {
         return;
     }
 
-    // <select> options already carry the backend's purpose codes (farm_equipment, business, ...)
     const purposeValue = purposeSelect?.value || 'other';
     const purposeTitle = purposeValue.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
     const durationMonths = parseInt(durationSelect?.value) || 12;
@@ -668,8 +692,8 @@ async function submitLoanRequest() {
                 title: `${purposeTitle} Loan`,
                 purpose: purposeValue,
                 principal: amount,
-                interest_rate: 8.0,
                 duration_months: durationMonths
+                // interest_rate intentionally omitted — backend uses group's configured rate
             })
         });
 
@@ -785,8 +809,6 @@ function renderTransactionHistory(transactions) {
     container.innerHTML = html;
 }
 
-// Builds a CSV of the member's transaction history and downloads it —
-// a lightweight stand-in for a server-generated PDF report.
 function downloadReport() {
     const transactions = window._lastTransactionHistory;
     if (!transactions || transactions.length === 0) {
@@ -817,14 +839,6 @@ function downloadReport() {
 }
 
 // ==================== NOTES ====================
-let selectedNoteMood = '😊 Good';
-
-function selectNoteMood(element) {
-    document.querySelectorAll('.mood-btn').forEach(el => el.classList.remove('active'));
-    element.classList.add('active');
-    selectedNoteMood = element.dataset.mood || selectedNoteMood;
-}
-
 async function addNote() {
     if (!requireAuth()) return;
 
@@ -843,7 +857,8 @@ async function addNote() {
         const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/notes`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ text: text, mood: selectedNoteMood })
+            body: JSON.stringify({ text: text })
+            // mood intentionally omitted — backend uses its own default
         });
 
         const data = await res.json();
@@ -912,7 +927,6 @@ async function loadNotifications() {
             notifDot.style.display = notifications.some(n => !n.is_read) ? 'block' : 'none';
         }
 
-        // Mark as read now that the user has opened the panel
         if (notifications.some(n => !n.is_read)) {
             fetch(`${API_BASE}/api/members/${getMemberId()}/notifications/read`, {
                 method: 'PUT',
@@ -978,19 +992,7 @@ async function sendMessage() {
 
         input.value = '';
         loadChatMessages();
-
-        // Simulate admin reply
-        setTimeout(async () => {
-            await fetch(`${API_BASE}/api/members/${getMemberId()}/messages`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    sender: 'admin',
-                    text: "Thank you for your message. We'll get back to you shortly!"
-                })
-            });
-            loadChatMessages();
-        }, 1000);
+        // No fake admin reply — only real messages from the API are displayed
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -1027,7 +1029,7 @@ async function loadProfile() {
         const profileLoanCount = document.getElementById('profileLoanCount');
         if (profileLoanCount) profileLoanCount.textContent = data.active_loans ? data.active_loans.length : member.total_shares;
 
-        updateMetricsChart(member.savings_balance);
+        updateMetricsChart(member.savings_balance, data.recent_transactions);
     } catch (err) {
         showToast(err.message, 'error');
     }
