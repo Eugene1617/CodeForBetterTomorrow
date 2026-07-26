@@ -1,8 +1,32 @@
-// member.js — Titukulane+ Member Portal
-// Reads auth from sessionStorage (set by login.js)
+
 
 const API_BASE = 'https://codeforbettertomorrow.onrender.com';
+// At the top of member.js (global scope)
+let metricsChartInstance = null;
 
+function updateMetricsChart(data) {
+    const ctx = document.getElementById('metricsChart');
+    if (!ctx) return;
+
+    // Destroy existing instance before building a new chart
+    if (metricsChartInstance !== null) {
+        metricsChartInstance.destroy();
+    }
+
+    metricsChartInstance = new Chart(ctx, {
+        type: 'line', // or 'bar'
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Savings Progress',
+                data: data.values,
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+}
 // ==================== AUTH STATE ====================
 function getToken()      { return sessionStorage.getItem('titukulane_token'); }
 function getMemberId()   { return parseInt(sessionStorage.getItem('titukulane_member_id')) || null; }
