@@ -1386,7 +1386,57 @@ def generate_group_report(group_id: int, db: Session = Depends(get_db)):
             for t in sorted(transactions, key=lambda x: x.created_at, reverse=True)[:20]
         ]
     }
+@app.get("/api/members/{member_id}", response_model=DashboardResponse)
+def get_member_dashboard(member_id: int, db: Session = Depends(get_db)):
+    """Read-only dashboard endpoint for a single member"""
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
 
+    group = db.query(Group).filter(Group.id == member.group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    # Fetch member related records safely
+    recent_transactions = db.query(Transaction).filter(Transaction.member_id == member_id)\
+        .order_by(Transaction.created_at.desc()).limit(10).all()
+        
+    active_loans = db.query(Loan).filter(
+        Loan.member_id == member_id, 
+        Loan.status == LoanStatus.ACTIVE
+    ).all()
+    
+    savings_goal = db.query(SavingsGoal).filter(SavingsGoal.member_id == member_id).first()
+    
+    recent_notes = db.query(DailyNote).filter(DailyNote.member_id == member_id)\
+        .order_by(DailyNote.note_date.desc()).limit(5).all()
+        
+    unread_notifications = db.query(Notification).filter(
+        Notification.member_id == member_id, 
+        Notification.is_read == False
+    ).count()
+    
+    group_members = db.query(Member).filter(Member.group_id == group.id, Member.is_active == True).all()
+
+    # Format group response
+    group_resp = GroupResponse.model_validate(group)
+    group_resp.member_count = len(group_members)
+    group_resp.total_savings = sum(m.savings_balance for m in group_members)
+
+    # Format member profile
+    member_profile = MemberProfileResponse.model_validate(member)
+    member_profile.group_name = group.name
+
+    return DashboardResponse(
+        member=member_profile,
+        group=group_resp,
+        recent_transactions=[TransactionResponse.model_validate(t) for t in recent_transactions],
+        active_loans=[LoanResponse.model_validate(l) for l in active_loans],
+        savings_goal=SavingsGoalResponse.model_validate(savings_goal) if savings_goal else None,
+        recent_notes=[DailyNoteResponse.model_validate(n) for n in recent_notes],
+        unread_notifications=unread_notifications,
+        group_members=[MemberResponse.model_validate(m) for m in group_members]
+    )
 # ==================== HEALTH CHECK ====================
 @app.get("/api/health")
 def health_check():
