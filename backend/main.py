@@ -844,7 +844,68 @@ def get_chat_messages(group_id: int, db: Session = Depends(get_db)):
             msg_data.member_name = m.member.full_name
         res.append(msg_data)
     return res
+# --- Fix GET /members/{member_id}/messages ---
+@app.get("/members/{member_id}/messages", response_model=List[ChatMessageResponse])
+@app.get("/api/members/{member_id}/messages", response_model=List[ChatMessageResponse])
+def get_member_messages_alias(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    messages = db.query(ChatMessage).filter(ChatMessage.group_id == member.group_id)\
+        .order_by(ChatMessage.created_at.asc()).all()
+    
+    res = []
+    for m in messages:
+        msg_data = ChatMessageResponse.model_validate(m)
+        if m.member:
+            msg_data.member_name = m.member.full_name
+        res.append(msg_data)
+    return res
 
+# --- Fix GET /members/{member_id} (Returns pure Member Profile) ---
+@app.get("/members/{member_id}", response_model=MemberProfileResponse)
+def get_member_profile_only(member_id: int, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    group = db.query(Group).filter(Group.id == member.group_id).first()
+    profile = MemberProfileResponse.model_validate(member)
+    profile.group_name = group.name if group else None
+    return profile
+
+# --- Fix POST /members/{member_id}/deposit ---
+class DepositRequest(BaseModel):
+    amount: float = Field(gt=0)
+    method: Optional[PaymentMethod] = PaymentMethod.AIRTEL_MONEY
+    currency: str = "MWK"
+    description: Optional[str] = "Deposit"
+
+@app.post("/members/{member_id}/deposit", response_model=TransactionResponse)
+@app.post("/api/members/{member_id}/deposit", response_model=TransactionResponse)
+def member_deposit(member_id: int, req: DepositRequest, db: Session = Depends(get_db)):
+    member = db.query(Member).filter(Member.id == member_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Update balance
+    member.savings_balance += req.amount
+
+    # Create transaction log
+    db_tx = Transaction(
+        group_id=member.group_id,
+        member_id=member.id,
+        type=TransactionType.DEPOSIT,
+        amount=req.amount,
+        currency=req.currency,
+        method=req.method,
+        description=req.description or "Member Deposit"
+    )
+    db.add(db_tx)
+    db.commit()
+    db.refresh(db_tx)
+    return TransactionResponse.model_validate(db_tx)
 @app.post("/api/groups/{group_id}/messages", response_model=ChatMessageResponse)
 @app.post("/groups/{group_id}/messages", response_model=ChatMessageResponse)
 def create_chat_message(group_id: int, msg: ChatMessageCreate, member_id: int, db: Session = Depends(get_db)):
