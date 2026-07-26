@@ -393,6 +393,7 @@
 <!-- ==================== MODALS ==================== -->
 
 <!-- Deposit Modal -->
+<!-- Deposit Modal -->
 <div class="modal-overlay" id="depositModal">
     <div class="modal-sheet">
         <div class="modal-handle"></div>
@@ -402,8 +403,11 @@
         <div class="modal-form">
             <div class="form-group">
                 <label>Amount (MWK - Kwacha)</label>
-                <input type="number" placeholder="Enter amount in kwacha" value="50000" id="depositAmount">
+                <input type="number" placeholder="Enter amount in kwacha" id="depositAmount" min="1" step="any" required>
             </div>
+        </div>
+    </div>
+</div>
 
             <div class="form-group">
                 <label>Payment Method</label>
