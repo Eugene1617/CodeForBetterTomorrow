@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="admin.css">
+<base target="_blank">
 </head>
 <body>
 <!-- SIDEBAR -->
@@ -39,7 +40,7 @@
             </div>
             <div class="nav-item" onclick="switchPage('loans')">
                 <i class="fas fa-hand-holding-dollar"></i> Loan Management
-                <span class="nav-badge">3</span>
+                <span class="nav-badge" id="loanBadge" style="display:none;">0</span>
             </div>
             <div class="nav-item" onclick="switchPage('savings')">
                 <i class="fas fa-piggy-bank"></i> Savings Pool
@@ -49,7 +50,7 @@
             <div class="nav-section-title">Intelligence</div>
             <div class="nav-item" onclick="switchPage('fraud')">
                 <i class="fas fa-shield-halved"></i> Fraud Detection
-                <span class="nav-badge" style="background:var(--accent);color:var(--text);">2</span>
+                <span class="nav-badge" id="fraudBadge" style="display:none;background:var(--accent);color:var(--text);">0</span>
             </div>
             <div class="nav-item" onclick="switchPage('reports')">
                 <i class="fas fa-file-lines"></i> Reports
@@ -64,12 +65,12 @@
     </nav>
 
     <div class="sidebar-footer">
-        <div class="user-avatar">JD</div>
+        <div class="user-avatar" id="sidebarAvatar">—</div>
         <div class="user-info">
-            <div class="user-name">John Doe</div>
-            <div class="user-role">Bank Chairman</div>
+            <div class="user-name" id="sidebarName">—</div>
+            <div class="user-role" id="sidebarRole">—</div>
         </div>
-        <i class="fas fa-right-from-bracket" style="color:var(--text-dim);cursor:pointer;"></i>
+        <i class="fas fa-right-from-bracket" style="color:var(--text-dim);cursor:pointer;" onclick="logout()"></i>
     </div>
 </aside>
 
@@ -84,9 +85,9 @@
             <button class="top-icon-btn"><i class="fas fa-plus"></i></button>
             <button class="top-icon-btn">
                 <i class="fas fa-bell"></i>
-                <span class="notification-dot"></span>
+                <span class="notification-dot" id="topNotifDot" style="display:none;"></span>
             </button>
-            <button class="top-icon-btn"><i class="fas fa-right-from-bracket"></i></button>
+            <button class="top-icon-btn" onclick="logout()"><i class="fas fa-right-from-bracket"></i></button>
         </div>
     </div>
 
@@ -94,51 +95,51 @@
     <div class="page-content tab-panel active" id="page-overview">
         <div class="page-header">
             <h1>Dashboard Overview</h1>
-            <p>Kyamulibwa Village Bank - July 2026</p>
+            <p id="groupNameDisplay">Loading group...</p>
         </div>
 
-        <!-- Admin Personal Section (Admin is also a member) -->
+        <!-- Admin Personal Section -->
         <div class="personal-section">
             <div class="personal-content">
-                <div class="personal-avatar">JD</div>
+                <div class="personal-avatar" id="personalAvatar">—</div>
                 <div class="personal-info">
-                    <div class="personal-name">John Doe</div>
-                    <div class="personal-role">Bank Chairman & Member since March 2023</div>
+                    <div class="personal-name" id="personalName">—</div>
+                    <div class="personal-role" id="personalRole">—</div>
                     <div class="personal-stats">
                         <div class="personal-stat">
-                            <div class="num">$4,250</div>
+                            <div class="num" id="personalSavings">—</div>
                             <div class="label">My Savings</div>
                         </div>
                         <div class="personal-stat">
-                            <div class="num">$0</div>
+                            <div class="num" id="personalLoans">—</div>
                             <div class="label">My Loans</div>
                         </div>
                         <div class="personal-stat">
-                            <div class="num">847</div>
+                            <div class="num" id="personalCredit">—</div>
                             <div class="label">Credit Score</div>
                         </div>
                         <div class="personal-stat">
-                            <div class="num">12</div>
+                            <div class="num" id="personalMonths">—</div>
                             <div class="label">Months Saved</div>
                         </div>
                     </div>
                 </div>
                 <div class="personal-actions">
-                    <button class="personal-btn light"><i class="fas fa-plus"></i> Save</button>
-                    <button class="personal-btn gold"><i class="fas fa-hand-holding-dollar"></i> Request Loan</button>
+                    <button class="personal-btn light" onclick="openModal('depositModal')"><i class="fas fa-plus"></i> Save</button>
+                    <button class="personal-btn gold" onclick="openModal('loanModal')"><i class="fas fa-hand-holding-dollar"></i> Request Loan</button>
                     <button class="personal-btn blue" onclick="openModal('requestMountModal')"><i class="fas fa-mountain"></i> Request Mount</button>
                 </div>
             </div>
         </div>
 
         <!-- Fraud Alert -->
-        <div class="fraud-alert">
+        <div class="fraud-alert" id="fraudAlertBanner" style="display:none;">
             <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
             <div class="fraud-alert-content">
-                <div class="fraud-alert-title">AI Fraud Alert: 2 Suspicious Transactions Detected</div>
-                <div class="fraud-alert-desc">Unusual repayment patterns flagged for members M-0842 and M-0911. Review recommended.</div>
+                <div class="fraud-alert-title" id="fraudAlertTitle">—</div>
+                <div class="fraud-alert-desc" id="fraudAlertDesc">—</div>
             </div>
-            <button class="btn btn-outline btn-sm">Review</button>
+            <button class="btn btn-outline btn-sm" onclick="switchPage('fraud')">Review</button>
         </div>
 
         <!-- Bank Stats -->
@@ -146,33 +147,33 @@
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-users"></i></div>
-                    <span class="stat-card-trend up"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 12%</span>
+                    <span class="stat-card-trend up" id="memberTrend" style="display:none;"><i class="fas fa-arrow-up" style="font-size:10px;"></i> —</span>
                 </div>
-                <div class="stat-card-value">248</div>
+                <div class="stat-card-value" id="totalMembers">—</div>
                 <div class="stat-card-label">Total Members</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-piggy-bank"></i></div>
-                    <span class="stat-card-trend up"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 8.4%</span>
+                    <span class="stat-card-trend up" id="savingsTrend" style="display:none;"><i class="fas fa-arrow-up" style="font-size:10px;"></i> —</span>
                 </div>
-                <div class="stat-card-value">$184,320</div>
+                <div class="stat-card-value" id="totalSavings">—</div>
                 <div class="stat-card-label">Total Savings</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-hand-holding-dollar"></i></div>
-                    <span class="stat-card-trend down"><i class="fas fa-arrow-down" style="font-size:10px;"></i> 3.2%</span>
+                    <span class="stat-card-trend down" id="loansTrend" style="display:none;"><i class="fas fa-arrow-down" style="font-size:10px;"></i> —</span>
                 </div>
-                <div class="stat-card-value">$92,100</div>
+                <div class="stat-card-value" id="activeLoansAmount">—</div>
                 <div class="stat-card-label">Active Loans</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon red"><i class="fas fa-circle-exclamation"></i></div>
-                    <span class="stat-card-trend up" style="background:rgba(192,57,43,0.1);color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> 2</span>
+                    <span class="stat-card-trend up" id="overdueTrend" style="display:none;background:rgba(192,57,43,0.1);color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> —</span>
                 </div>
-                <div class="stat-card-value">3</div>
+                <div class="stat-card-value" id="overdueCount">—</div>
                 <div class="stat-card-label">Overdue Loans</div>
             </div>
         </div>
@@ -188,35 +189,8 @@
                         <button class="chart-filter">Year</button>
                     </div>
                 </div>
-                <div class="bar-chart">
-                    <div class="bar-group">
-                        <div class="bar" style="height:60%;background:var(--primary);"><span class="bar-value">$12k</span></div>
-                        <div class="bar-label">Jan</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:75%;background:var(--primary);"><span class="bar-value">$15k</span></div>
-                        <div class="bar-label">Feb</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:50%;background:var(--primary);"><span class="bar-value">$10k</span></div>
-                        <div class="bar-label">Mar</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:85%;background:var(--primary);"><span class="bar-value">$17k</span></div>
-                        <div class="bar-label">Apr</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:70%;background:var(--primary);"><span class="bar-value">$14k</span></div>
-                        <div class="bar-label">May</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:90%;background:var(--primary);"><span class="bar-value">$18k</span></div>
-                        <div class="bar-label">Jun</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:100%;background:var(--accent);"><span class="bar-value">$20k</span></div>
-                        <div class="bar-label">Jul</div>
-                    </div>
+                <div class="bar-chart" id="trendChart">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading chart data...</div>
                 </div>
             </div>
 
@@ -224,38 +198,10 @@
                 <div class="chart-header">
                     <div class="chart-title">Loan Portfolio</div>
                 </div>
-                <div class="donut-chart">
-                    <svg viewBox="0 0 100 100" width="160" height="160">
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="12"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success)" stroke-width="12"
-                            stroke-dasharray="150.8 251.3" stroke-dashoffset="0" stroke-linecap="round"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
-                            stroke-dasharray="75.4 251.3" stroke-dashoffset="-150.8" stroke-linecap="round"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--danger)" stroke-width="12"
-                            stroke-dasharray="25.1 251.3" stroke-dashoffset="-226.2" stroke-linecap="round"/>
-                    </svg>
-                    <div class="donut-center">
-                        <div class="num">92%</div>
-                        <div class="label">Repayment</div>
-                    </div>
+                <div class="donut-chart" id="portfolioChart">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading portfolio data...</div>
                 </div>
-                <div class="donut-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--success);"></div>
-                        <span>On Track</span>
-                        <span class="legend-val">60%</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--accent);"></div>
-                        <span>Pending</span>
-                        <span class="legend-val">30%</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--danger);"></div>
-                        <span>Overdue</span>
-                        <span class="legend-val">10%</span>
-                    </div>
-                </div>
+                <div class="donut-legend" id="portfolioLegend" style="display:none;"></div>
             </div>
         </div>
 
@@ -278,91 +224,18 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar">AN</div>
-                                <div>
-                                    <div class="member-name">Aisha Nalwoga</div>
-                                    <div class="member-phone">+256 701 234 567</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
-                        <td class="amount positive">+$150.00</td>
-                        <td>Jul 18, 2026</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--info);">PK</div>
-                                <div>
-                                    <div class="member-name">Patrick Kato</div>
-                                    <div class="member-phone">+256 702 345 678</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span style="color:var(--accent);"><i class="fas fa-hand-holding-dollar" style="font-size:10px;"></i> Loan Repay</span></td>
-                        <td class="amount positive">+$45.00</td>
-                        <td>Jul 18, 2026</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--danger);">SN</div>
-                                <div>
-                                    <div class="member-name">Sarah Namuli</div>
-                                    <div class="member-phone">+256 703 456 789</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span style="color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> Withdrawal</span></td>
-                        <td class="amount negative">-$200.00</td>
-                        <td>Jul 17, 2026</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--accent);">JM</div>
-                                <div>
-                                    <div class="member-name">James Mukasa</div>
-                                    <div class="member-phone">+256 704 567 890</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span style="color:var(--accent);"><i class="fas fa-hand-holding-dollar" style="font-size:10px;"></i> Loan Disbursed</span></td>
-                        <td class="amount negative">-$500.00</td>
-                        <td>Jul 17, 2026</td>
-                        <td><span class="status-badge status-pending"><i class="fas fa-clock" style="font-size:8px;"></i> Processing</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
-                                <div>
-                                    <div class="member-name">Grace Nakato</div>
-                                    <div class="member-phone">+256 705 678 901</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
-                        <td class="amount positive">+$75.00</td>
-                        <td>Jul 16, 2026</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
-                    </tr>
+                <tbody id="recentTransactionsBody">
+                    <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No transactions yet</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
+
     <!-- MY SAVINGS PAGE -->
     <div class="page-content tab-panel" id="page-my-savings">
         <div class="page-header">
             <h1>My Savings</h1>
-            <p>Your personal savings account at Kyamulibwa Village Bank</p>
+            <p>Your personal savings account</p>
         </div>
 
         <div class="cards-grid">
@@ -370,28 +243,28 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-wallet"></i></div>
                 </div>
-                <div class="stat-card-value">$4,250</div>
+                <div class="stat-card-value" id="mySavingsTotal">—</div>
                 <div class="stat-card-label">Total Savings</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-calendar"></i></div>
                 </div>
-                <div class="stat-card-value">$350</div>
+                <div class="stat-card-value" id="mySavingsMonth">—</div>
                 <div class="stat-card-label">This Month</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-percentage"></i></div>
                 </div>
-                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-value" id="myInterestRate">—</div>
                 <div class="stat-card-label">Interest Rate</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-coins"></i></div>
                 </div>
-                <div class="stat-card-value">$221</div>
+                <div class="stat-card-value" id="myInterestEarned">—</div>
                 <div class="stat-card-label">Interest Earned</div>
             </div>
         </div>
@@ -401,35 +274,8 @@
                 <div class="chart-header">
                     <div class="chart-title">My Savings Growth</div>
                 </div>
-                <div class="bar-chart">
-                    <div class="bar-group">
-                        <div class="bar" style="height:20%;background:var(--primary);"><span class="bar-value">$1.2k</span></div>
-                        <div class="bar-label">Jan</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:35%;background:var(--primary);"><span class="bar-value">$1.8k</span></div>
-                        <div class="bar-label">Feb</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:45%;background:var(--primary);"><span class="bar-value">$2.3k</span></div>
-                        <div class="bar-label">Mar</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:55%;background:var(--primary);"><span class="bar-value">$2.8k</span></div>
-                        <div class="bar-label">Apr</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:70%;background:var(--primary);"><span class="bar-value">$3.4k</span></div>
-                        <div class="bar-label">May</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:85%;background:var(--primary);"><span class="bar-value">$3.9k</span></div>
-                        <div class="bar-label">Jun</div>
-                    </div>
-                    <div class="bar-group">
-                        <div class="bar" style="height:100%;background:var(--accent);"><span class="bar-value">$4.3k</span></div>
-                        <div class="bar-label">Jul</div>
-                    </div>
+                <div class="bar-chart" id="mySavingsChart">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading chart data...</div>
                 </div>
             </div>
 
@@ -437,38 +283,10 @@
                 <div class="chart-header">
                     <div class="chart-title">Savings Breakdown</div>
                 </div>
-                <div class="donut-chart">
-                    <svg viewBox="0 0 100 100" width="160" height="160">
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="12"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--primary)" stroke-width="12"
-                            stroke-dasharray="188.5 251.3" stroke-dashoffset="0" stroke-linecap="round"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
-                            stroke-dasharray="50.3 251.3" stroke-dashoffset="-188.5" stroke-linecap="round"/>
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success)" stroke-width="12"
-                            stroke-dasharray="12.6 251.3" stroke-dashoffset="-238.8" stroke-linecap="round"/>
-                    </svg>
-                    <div class="donut-center">
-                        <div class="num">$4,250</div>
-                        <div class="label">Total</div>
-                    </div>
+                <div class="donut-chart" id="myBreakdownChart">
+                    <div style="text-align:center;padding:40px;color:var(--text-dim);">Loading breakdown...</div>
                 </div>
-                <div class="donut-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--primary);"></div>
-                        <span>Principal</span>
-                        <span class="legend-val">$3,750</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--accent);"></div>
-                        <span>Interest</span>
-                        <span class="legend-val">$221</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--success);"></div>
-                        <span>Bonus</span>
-                        <span class="legend-val">$279</span>
-                    </div>
-                </div>
+                <div class="donut-legend" id="myBreakdownLegend" style="display:none;"></div>
             </div>
         </div>
 
@@ -480,31 +298,8 @@
                 <thead>
                     <tr><th>Type</th><th>Amount</th><th>Date</th><th>Balance After</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
-                        <td class="amount positive">+$150.00</td>
-                        <td>Jul 15, 2026</td>
-                        <td>$4,250.00</td>
-                    </tr>
-                    <tr>
-                        <td><span style="color:var(--success);"><i class="fas fa-arrow-down" style="font-size:10px;"></i> Deposit</span></td>
-                        <td class="amount positive">+$200.00</td>
-                        <td>Jul 01, 2026</td>
-                        <td>$4,100.00</td>
-                    </tr>
-                    <tr>
-                        <td><span style="color:var(--accent);"><i class="fas fa-coins" style="font-size:10px;"></i> Interest</span></td>
-                        <td class="amount positive">+$18.20</td>
-                        <td>Jun 30, 2026</td>
-                        <td>$3,900.00</td>
-                    </tr>
-                    <tr>
-                        <td><span style="color:var(--danger);"><i class="fas fa-arrow-up" style="font-size:10px;"></i> Withdrawal</span></td>
-                        <td class="amount negative">-$100.00</td>
-                        <td>Jun 20, 2026</td>
-                        <td>$3,881.80</td>
-                    </tr>
+                <tbody id="myTransactionHistoryBody">
+                    <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim);">No transactions yet</td></tr>
                 </tbody>
             </table>
         </div>
@@ -522,75 +317,50 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
                 </div>
-                <div class="stat-card-value">$0</div>
+                <div class="stat-card-value" id="myLoanBalance">—</div>
                 <div class="stat-card-label">Current Balance</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-history"></i></div>
                 </div>
-                <div class="stat-card-value">3</div>
+                <div class="stat-card-value" id="myLoansTaken">—</div>
                 <div class="stat-card-label">Loans Taken</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-star"></i></div>
                 </div>
-                <div class="stat-card-value">847</div>
+                <div class="stat-card-value" id="myLoanCredit">—</div>
                 <div class="stat-card-label">Credit Score</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-percentage"></i></div>
                 </div>
-                <div class="stat-card-value">100%</div>
+                <div class="stat-card-value" id="myRepaymentRate">—</div>
                 <div class="stat-card-label">Repayment Rate</div>
             </div>
         </div>
 
-        <div class="ai-insight">
+        <div class="ai-insight" id="aiInsightBox" style="display:none;">
             <div class="ai-insight-icon"><i class="fas fa-robot"></i></div>
-            <div class="ai-insight-text">
-                <strong>AI Credit Insight:</strong> Your excellent repayment history and consistent savings pattern give you a credit score of 847. You are eligible for loans up to <strong>$5,000</strong> at the preferred 8% interest rate. Your next eligibility review is in 15 days.
-            </div>
+            <div class="ai-insight-text" id="aiInsightText">—</div>
         </div>
 
         <div class="table-card">
             <div class="table-header">
                 <div class="table-title">Loan History</div>
                 <div class="table-actions">
-                    <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Request New Loan</button>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('loanModal')"><i class="fas fa-plus"></i> Request New Loan</button>
                 </div>
             </div>
             <table>
                 <thead>
                     <tr><th>Loan ID</th><th>Amount</th><th>Interest</th><th>Duration</th><th>Paid</th><th>Status</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>L-2024-0042</td>
-                        <td class="amount">$800</td>
-                        <td>10% / year</td>
-                        <td>6 months</td>
-                        <td>$880</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
-                    </tr>
-                    <tr>
-                        <td>L-2024-0018</td>
-                        <td class="amount">$500</td>
-                        <td>12% / year</td>
-                        <td>4 months</td>
-                        <td>$520</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
-                    </tr>
-                    <tr>
-                        <td>L-2023-0091</td>
-                        <td class="amount">$300</td>
-                        <td>12% / year</td>
-                        <td>3 months</td>
-                        <td>$309</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Paid Off</span></td>
-                    </tr>
+                <tbody id="myLoanHistoryBody">
+                    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No loans yet</td></tr>
                 </tbody>
             </table>
         </div>
@@ -608,28 +378,28 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-users"></i></div>
                 </div>
-                <div class="stat-card-value" id="totalMembersCount">248</div>
+                <div class="stat-card-value" id="membersTotalCount">—</div>
                 <div class="stat-card-label">Total Members</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-user-plus"></i></div>
                 </div>
-                <div class="stat-card-value">18</div>
+                <div class="stat-card-value" id="membersNewCount">—</div>
                 <div class="stat-card-label">New This Month</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-star"></i></div>
                 </div>
-                <div class="stat-card-value">156</div>
+                <div class="stat-card-value" id="membersActiveSavers">—</div>
                 <div class="stat-card-label">Active Savers</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon red"><i class="fas fa-triangle-exclamation"></i></div>
                 </div>
-                <div class="stat-card-value">12</div>
+                <div class="stat-card-value" id="membersAtRisk">—</div>
                 <div class="stat-card-label">At Risk</div>
             </div>
         </div>
@@ -653,91 +423,13 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar">AN</div>
-                                <div>
-                                    <div class="member-name">Aisha Nalwoga</div>
-                                    <div class="member-phone">M-0841</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>Mar 2024</td>
-                        <td class="amount positive">$2,340</td>
-                        <td class="amount">$0</td>
-                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 847</span></td>
-                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--info);">PK</div>
-                                <div>
-                                    <div class="member-name">Patrick Kato</div>
-                                    <div class="member-phone">M-0842</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>Jun 2024</td>
-                        <td class="amount positive">$890</td>
-                        <td class="amount negative">$450</td>
-                        <td><span class="credit-score score-good"><i class="fas fa-star" style="font-size:9px;"></i> 721</span></td>
-                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--danger);">SN</div>
-                                <div>
-                                    <div class="member-name">Sarah Namuli</div>
-                                    <div class="member-phone">M-0843</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>Aug 2024</td>
-                        <td class="amount positive">$1,120</td>
-                        <td class="amount negative">$200</td>
-                        <td><span class="credit-score score-fair"><i class="fas fa-star" style="font-size:9px;"></i> 634</span></td>
-                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--accent);">JM</div>
-                                <div>
-                                    <div class="member-name">James Mukasa</div>
-                                    <div class="member-phone">M-0844</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>Oct 2024</td>
-                        <td class="amount positive">$3,500</td>
-                        <td class="amount">$0</td>
-                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 891</span></td>
-                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
-                                <div>
-                                    <div class="member-name">Grace Nakato</div>
-                                    <div class="member-phone">M-0845</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>Jan 2025</td>
-                        <td class="amount positive">$5,600</td>
-                        <td class="amount negative">$1,200</td>
-                        <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 856</span></td>
-                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-                    </tr>
+                <tbody id="membersDirectoryBody">
+                    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No members yet</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
+
     <!-- LOAN MANAGEMENT PAGE -->
     <div class="page-content tab-panel" id="page-loans">
         <div class="page-header">
@@ -750,36 +442,36 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-hand-holding-dollar"></i></div>
                 </div>
-                <div class="stat-card-value">$92,100</div>
+                <div class="stat-card-value" id="loansTotalDisbursed">—</div>
                 <div class="stat-card-label">Total Disbursed</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
                 </div>
-                <div class="stat-card-value">84%</div>
+                <div class="stat-card-value" id="loansRepaymentRate">—</div>
                 <div class="stat-card-label">Repayment Rate</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-clock"></i></div>
                 </div>
-                <div class="stat-card-value">7</div>
+                <div class="stat-card-value" id="loansPendingCount">—</div>
                 <div class="stat-card-label">Pending Approval</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon red"><i class="fas fa-circle-exclamation"></i></div>
                 </div>
-                <div class="stat-card-value">3</div>
+                <div class="stat-card-value" id="loansOverdueCount">—</div>
                 <div class="stat-card-label">Overdue</div>
             </div>
         </div>
 
         <div class="tabs">
             <div class="tab active" onclick="switchTab(this, 'loans-all')">All Loans</div>
-            <div class="tab" onclick="switchTab(this, 'loans-pending')">Pending (7)</div>
-            <div class="tab" onclick="switchTab(this, 'loans-overdue')">Overdue (3)</div>
+            <div class="tab" onclick="switchTab(this, 'loans-pending')">Pending</div>
+            <div class="tab" onclick="switchTab(this, 'loans-overdue')">Overdue</div>
             <div class="tab" onclick="switchTab(this, 'loans-paid')">Paid Off</div>
         </div>
 
@@ -789,7 +481,7 @@
                     <div class="table-title">Active Loans</div>
                     <div class="table-actions">
                         <button class="btn btn-outline btn-sm"><i class="fas fa-filter"></i> Filter</button>
-                        <button class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Loan</button>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('loanModal')"><i class="fas fa-plus"></i> New Loan</button>
                     </div>
                 </div>
                 <table>
@@ -804,64 +496,8 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar" style="background:var(--info);">PK</div>
-                                    <div class="member-name">Patrick Kato</div>
-                                </div>
-                            </td>
-                            <td class="amount">$500</td>
-                            <td>12% / year</td>
-                            <td>6 months</td>
-                            <td>
-                                <div class="loan-progress-mini">
-                                    <div class="bar"><div class="fill" style="width:55%;background:var(--success);"></div></div>
-                                    <div class="label">$275 / $225 left</div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> On Track</span></td>
-                            <td><button class="btn btn-outline btn-sm">View</button></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar" style="background:var(--danger);">SN</div>
-                                    <div class="member-name">Sarah Namuli</div>
-                                </div>
-                            </td>
-                            <td class="amount">$300</td>
-                            <td>10% / year</td>
-                            <td>4 months</td>
-                            <td>
-                                <div class="loan-progress-mini">
-                                    <div class="bar"><div class="fill" style="width:33%;background:var(--accent);"></div></div>
-                                    <div class="label">$100 / $200 left</div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-pending"><i class="fas fa-clock" style="font-size:8px;"></i> At Risk</span></td>
-                            <td><button class="btn btn-outline btn-sm">View</button></td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar" style="background:#8e44ad;">GN</div>
-                                    <div class="member-name">Grace Nakato</div>
-                                </div>
-                            </td>
-                            <td class="amount">$1,200</td>
-                            <td>8% / year</td>
-                            <td>12 months</td>
-                            <td>
-                                <div class="loan-progress-mini">
-                                    <div class="bar"><div class="fill" style="width:75%;background:var(--success);"></div></div>
-                                    <div class="label">$900 / $300 left</div>
-                                </div>
-                            </td>
-                            <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> On Track</span></td>
-                            <td><button class="btn btn-outline btn-sm">View</button></td>
-                        </tr>
+                    <tbody id="loansAllBody">
+                        <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-dim);">No loans yet</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -874,41 +510,10 @@
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Member</th><th>Amount</th><th>Purpose</th><th>Credit Score</th><th>AI Risk</th><th>Actions</th></tr>
+                        <tr><th>Member</th><th>Amount</th><th>Purpose</th><th>Credit Score</th><th>Actions</th></tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar">DK</div>
-                                    <div class="member-name">David Kasule</div>
-                                </div>
-                            </td>
-                            <td class="amount">$800</td>
-                            <td>Farm equipment</td>
-                            <td><span class="credit-score score-excellent"><i class="fas fa-star" style="font-size:9px;"></i> 812</span></td>
-                            <td><span style="color:var(--success);font-weight:600;">Low (12%)</span></td>
-                            <td>
-                                <button class="btn btn-primary btn-sm">Approve</button>
-                                <button class="btn btn-outline btn-sm">Reject</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar" style="background:var(--accent);">MN</div>
-                                    <div class="member-name">Mary Nambi</div>
-                                </div>
-                            </td>
-                            <td class="amount">$350</td>
-                            <td>Small business</td>
-                            <td><span class="credit-score score-good"><i class="fas fa-star" style="font-size:9px;"></i> 745</span></td>
-                            <td><span style="color:var(--accent);font-weight:600;">Medium (34%)</span></td>
-                            <td>
-                                <button class="btn btn-primary btn-sm">Approve</button>
-                                <button class="btn btn-outline btn-sm">Reject</button>
-                            </td>
-                        </tr>
+                    <tbody id="loansPendingBody">
+                        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No pending applications</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -921,25 +526,10 @@
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Member</th><th>Amount</th><th>Overdue By</th><th>Missed Payments</th><th>AI Recommendation</th><th>Actions</th></tr>
+                        <tr><th>Member</th><th>Amount</th><th>Overdue By</th><th>Missed Payments</th><th>Actions</th></tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar" style="background:var(--danger);">RO</div>
-                                    <div class="member-name">Robert Ojok</div>
-                                </div>
-                            </td>
-                            <td class="amount negative">$600</td>
-                            <td><span style="color:var(--danger);font-weight:600;">14 days</span></td>
-                            <td>2 payments</td>
-                            <td><span style="color:var(--accent);">⚠️ Restructure loan</span></td>
-                            <td>
-                                <button class="btn btn-outline btn-sm">Contact</button>
-                                <button class="btn btn-outline btn-sm">Restructure</button>
-                            </td>
-                        </tr>
+                    <tbody id="loansOverdueBody">
+                        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No overdue loans</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -954,19 +544,8 @@
                     <thead>
                         <tr><th>Member</th><th>Amount</th><th>Interest</th><th>Paid</th><th>Completed</th></tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="member-cell">
-                                    <div class="member-avatar">JD</div>
-                                    <div class="member-name">John Doe</div>
-                                </div>
-                            </td>
-                            <td class="amount">$800</td>
-                            <td>10% / year</td>
-                            <td>$880</td>
-                            <td>Mar 2025</td>
-                        </tr>
+                    <tbody id="loansPaidBody">
+                        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No paid off loans</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -985,50 +564,34 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon red"><i class="fas fa-shield-halved"></i></div>
                 </div>
-                <div class="stat-card-value">2</div>
+                <div class="stat-card-value" id="fraudActiveAlerts">—</div>
                 <div class="stat-card-label">Active Alerts</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-check-circle"></i></div>
                 </div>
-                <div class="stat-card-value">99.2%</div>
+                <div class="stat-card-value" id="fraudAccuracy">—</div>
                 <div class="stat-card-label">Accuracy</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-eye"></i></div>
                 </div>
-                <div class="stat-card-value">1,240</div>
+                <div class="stat-card-value" id="fraudMonitored">—</div>
                 <div class="stat-card-label">Transactions Monitored</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-clock-rotate-left"></i></div>
                 </div>
-                <div class="stat-card-value">0.3s</div>
+                <div class="stat-card-value" id="fraudDetectionTime">—</div>
                 <div class="stat-card-label">Detection Time</div>
             </div>
         </div>
 
-        <div class="fraud-alert">
-            <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="fraud-alert-content">
-                <div class="fraud-alert-title">Alert #F-2026-0842: Unusual Repayment Pattern</div>
-                <div class="fraud-alert-desc">Member Patrick Kato (M-0842) made 3 large repayments in 48 hours after 2 months of missed payments. AI confidence: 87%. Possible loan cycling or external funding.</div>
-            </div>
-            <button class="btn btn-outline btn-sm">Investigate</button>
-            <button class="btn btn-primary btn-sm">Mark Safe</button>
-        </div>
-
-        <div class="fraud-alert">
-            <div class="fraud-alert-icon"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="fraud-alert-content">
-                <div class="fraud-alert-title">Alert #F-2026-0911: Suspicious Withdrawal Pattern</div>
-                <div class="fraud-alert-desc">Member Robert Ojok (M-0911) withdrew 80% of savings immediately after receiving loan disbursement. AI confidence: 92%. Potential fraud risk.</div>
-            </div>
-            <button class="btn btn-outline btn-sm">Investigate</button>
-            <button class="btn btn-primary btn-sm">Mark Safe</button>
+        <div id="fraudAlertsContainer">
+            <!-- Fraud alerts injected here by JS -->
         </div>
 
         <div class="table-card">
@@ -1039,37 +602,13 @@
                 <thead>
                     <tr><th>Alert ID</th><th>Member</th><th>Type</th><th>Date</th><th>Resolution</th><th>Status</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>F-2026-0078</td>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar">AN</div>
-                                <div class="member-name">Aisha Nalwoga</div>
-                            </div>
-                        </td>
-                        <td>Duplicate deposit</td>
-                        <td>Jul 10, 2026</td>
-                        <td>Confirmed: Mobile money retry</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Safe</span></td>
-                    </tr>
-                    <tr>
-                        <td>F-2026-0056</td>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--info);">PK</div>
-                                <div class="member-name">Patrick Kato</div>
-                            </div>
-                        </td>
-                        <td>Large withdrawal</td>
-                        <td>Jul 05, 2026</td>
-                        <td>Confirmed: School fees payment</td>
-                        <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Safe</span></td>
-                    </tr>
+                <tbody id="fraudResolvedBody">
+                    <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No resolved alerts</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
+
     <!-- SAVINGS POOL PAGE -->
     <div class="page-content tab-panel" id="page-savings">
         <div class="page-header">
@@ -1082,28 +621,28 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-piggy-bank"></i></div>
                 </div>
-                <div class="stat-card-value">$184,320</div>
+                <div class="stat-card-value" id="poolTotalSavings">—</div>
                 <div class="stat-card-label">Total Savings</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-users"></i></div>
                 </div>
-                <div class="stat-card-value">156</div>
+                <div class="stat-card-value" id="poolActiveSavers">—</div>
                 <div class="stat-card-label">Active Savers</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-percentage"></i></div>
                 </div>
-                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-value" id="poolInterestRate">—</div>
                 <div class="stat-card-label">Avg Interest Rate</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-coins"></i></div>
                 </div>
-                <div class="stat-card-value">$9,584</div>
+                <div class="stat-card-value" id="poolInterestPaid">—</div>
                 <div class="stat-card-label">Interest Paid YTD</div>
             </div>
         </div>
@@ -1118,48 +657,10 @@
             </div>
             <table>
                 <thead>
-                    <tr><th>Rank</th><th>Member</th><th>Total Saved</th><th>This Year</th><th>Interest Earned</th><th>Streak</th></tr>
+                    <tr><th>Rank</th><th>Member</th><th>Total Saved</th><th>Shares</th><th>Credit Score</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td><span style="color:var(--accent);font-weight:700;">#1</span></td>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:#8e44ad;">GN</div>
-                                <div class="member-name">Grace Nakato</div>
-                            </div>
-                        </td>
-                        <td class="amount positive">$5,600</td>
-                        <td class="amount positive">$2,100</td>
-                        <td class="amount positive">$291</td>
-                        <td><span style="color:var(--success);font-weight:600;">18 months</span></td>
-                    </tr>
-                    <tr>
-                        <td><span style="color:var(--text-dim);font-weight:700;">#2</span></td>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar" style="background:var(--accent);">JM</div>
-                                <div class="member-name">James Mukasa</div>
-                            </div>
-                        </td>
-                        <td class="amount positive">$3,500</td>
-                        <td class="amount positive">$1,800</td>
-                        <td class="amount positive">$182</td>
-                        <td><span style="color:var(--success);font-weight:600;">12 months</span></td>
-                    </tr>
-                    <tr>
-                        <td><span style="color:var(--accent);font-weight:700;">#3</span></td>
-                        <td>
-                            <div class="member-cell">
-                                <div class="member-avatar">AN</div>
-                                <div class="member-name">Aisha Nalwoga</div>
-                            </div>
-                        </td>
-                        <td class="amount positive">$2,340</td>
-                        <td class="amount positive">$890</td>
-                        <td class="amount positive">$122</td>
-                        <td><span style="color:var(--success);font-weight:600;">10 months</span></td>
-                    </tr>
+                <tbody id="topSaversBody">
+                    <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No savers yet</td></tr>
                 </tbody>
             </table>
         </div>
@@ -1177,14 +678,14 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-file-invoice-dollar"></i></div>
                 </div>
-                <div class="stat-card-value">12</div>
+                <div class="stat-card-value" id="reportsGenerated">—</div>
                 <div class="stat-card-label">Reports Generated</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-calendar-check"></i></div>
                 </div>
-                <div class="stat-card-value">Jul 2026</div>
+                <div class="stat-card-value" id="reportsCurrentPeriod">—</div>
                 <div class="stat-card-label">Current Period</div>
             </div>
         </div>
@@ -1197,31 +698,8 @@
                 <thead>
                     <tr><th>Report Name</th><th>Period</th><th>Generated</th><th>Actions</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Monthly Financial Statement</td>
-                        <td>July 2026</td>
-                        <td>Jul 18, 2026</td>
-                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Loan Portfolio Report</td>
-                        <td>Q2 2026</td>
-                        <td>Jun 30, 2026</td>
-                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Member Activity Report</td>
-                        <td>June 2026</td>
-                        <td>Jul 01, 2026</td>
-                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-file-pdf" style="color:var(--danger);margin-right:8px;"></i> Fraud Detection Summary</td>
-                        <td>Q2 2026</td>
-                        <td>Jun 30, 2026</td>
-                        <td><button class="btn btn-outline btn-sm"><i class="fas fa-download"></i> Download</button></td>
-                    </tr>
+                <tbody id="reportsListBody">
+                    <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim);">No reports generated yet</td></tr>
                 </tbody>
             </table>
         </div>
@@ -1239,28 +717,28 @@
                 <div class="stat-card-header">
                     <div class="stat-card-icon blue"><i class="fas fa-building"></i></div>
                 </div>
-                <div class="stat-card-value">Kyamulibwa</div>
-                <div class="stat-card-label">Village Bank Name</div>
+                <div class="stat-card-value" id="settingsGroupName">—</div>
+                <div class="stat-card-label">Group Name</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon green"><i class="fas fa-percentage"></i></div>
                 </div>
-                <div class="stat-card-value">5.2%</div>
+                <div class="stat-card-value" id="settingsSavingsInterest">—</div>
                 <div class="stat-card-label">Savings Interest</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon gold"><i class="fas fa-hand-holding-dollar"></i></div>
                 </div>
-                <div class="stat-card-value">8-12%</div>
+                <div class="stat-card-value" id="settingsLoanRange">—</div>
                 <div class="stat-card-label">Loan Interest Range</div>
             </div>
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-icon red"><i class="fas fa-ban"></i></div>
                 </div>
-                <div class="stat-card-value">$5,000</div>
+                <div class="stat-card-value" id="settingsMaxLoan">—</div>
                 <div class="stat-card-label">Max Loan Amount</div>
             </div>
         </div>
@@ -1273,43 +751,8 @@
                 <thead>
                     <tr><th>Setting</th><th>Current Value</th><th>Description</th><th>Actions</th></tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td><i class="fas fa-percentage" style="color:var(--primary);margin-right:8px;"></i> Savings Interest Rate</td>
-                        <td><strong>5.2%</strong></td>
-                        <td>Annual interest paid on member savings</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-hand-holding-dollar" style="color:var(--primary);margin-right:8px;"></i> Base Loan Interest</td>
-                        <td><strong>12%</strong></td>
-                        <td>Default annual interest for new loans</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-star" style="color:var(--primary);margin-right:8px;"></i> Preferred Member Rate</td>
-                        <td><strong>8%</strong></td>
-                        <td>Reduced rate for members with score 800+</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-money-bill-wave" style="color:var(--primary);margin-right:8px;"></i> Minimum Deposit</td>
-                        <td><strong>$5</strong></td>
-                        <td>Minimum amount per deposit transaction</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-clock" style="color:var(--primary);margin-right:8px;"></i> Loan Approval</td>
-                        <td><strong>Manual</strong></td>
-                        <td>Require admin approval for all loans</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-bell" style="color:var(--primary);margin-right:8px;"></i> SMS Reminders</td>
-                        <td><strong>Enabled</strong></td>
-                        <td>Send repayment reminders 3 days before due</td>
-                        <td><button class="btn btn-outline btn-sm">Edit</button></td>
-                    </tr>
+                <tbody id="settingsConfigBody">
+                    <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim);">Loading settings...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -1415,7 +858,7 @@
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">Requested By:</span>
-                    <span class="summary-value">John Doe (Bank Chairman)</span>
+                    <span class="summary-value" id="confirmRequester">—</span>
                 </div>
                 <div class="summary-item">
                     <span class="summary-label">Date:</span>
@@ -1437,30 +880,80 @@
 </div>
 
 <script>
-function switchPage(page) {
-    // Hide all pages
-    document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-    // Show selected page
-    document.getElementById('page-' + page).classList.add('active');
+const API_BASE = "https://codeforbettertomorrow.onrender.com";
 
-    // Update nav active state
+function getToken()      { return sessionStorage.getItem('titukulane_token'); }
+function getMemberId()   { return parseInt(sessionStorage.getItem('titukulane_member_id')) || null; }
+function getGroupId()    { return parseInt(sessionStorage.getItem('titukulane_group_id')) || null; }
+function getFullName()   { return sessionStorage.getItem('titukulane_full_name') || ''; }
+function getRole()       { return sessionStorage.getItem('titukulane_role') || ''; }
+
+function getAuthHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+    };
+}
+
+function isLoggedIn() {
+    return !!(getToken() && getMemberId() && getGroupId());
+}
+
+function requireAuth() {
+    if (!isLoggedIn()) {
+        window.location.href = 'index.html';
+        return false;
+    }
+    return true;
+}
+
+function logout() {
+    sessionStorage.clear();
+    window.location.href = 'index.html';
+}
+
+function switchPage(page) {
+    document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
+
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event.currentTarget.classList.add('active');
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        if (item.getAttribute('onclick')?.includes("'" + page + "'")) {
+            item.classList.add('active');
+        }
+    });
+
+    // Load data for the page
+    const loaders = {
+        overview: loadOverview,
+        'my-savings': loadMySavings,
+        'my-loans': loadMyLoans,
+        members: loadMembers,
+        loans: loadLoans,
+        fraud: loadFraud,
+        savings: loadSavingsPool,
+        reports: loadReports,
+        settings: loadSettings
+    };
+    if (loaders[page]) loaders[page]();
 }
 
 function switchTab(tab, panelId) {
-    // Update tab active state
     const parent = tab.parentElement;
     parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
 
-    // Show corresponding panel
-    const panels = parent.nextElementSibling.parentElement.querySelectorAll('.tab-panel');
-    panels.forEach(p => p.classList.remove('active'));
-    document.getElementById(panelId).classList.add('active');
+    const container = parent.nextElementSibling;
+    if (container) {
+        container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    }
+    const panel = document.getElementById(panelId);
+    if (panel) panel.classList.add('active');
 }
 
-// Modal Functions
 function openModal(id) {
     const modal = document.getElementById(id);
     if (modal) {
@@ -1477,97 +970,49 @@ function closeModal(id) {
     }
 }
 
-// Close modal when clicking overlay
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.modal-overlay').forEach(modal => {
         modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal(this.id);
-            }
+            if (e.target === this) closeModal(this.id);
         });
     });
+
+    if (isLoggedIn()) {
+        loadSidebarInfo();
+        loadOverview();
+    } else {
+        window.location.href = 'index.html';
+    }
 });
 
-// Confirm Mount Request
-function confirmMountRequest() {
-    const amount = document.getElementById('mountAmount').value;
-    const purpose = document.getElementById('mountPurpose').value;
-    const description = document.getElementById('mountDescription').value;
-    
-    // Validate inputs
-    if (!amount || amount <= 0) {
-        alert('Please enter a valid amount');
-        return;
-    }
-    
-    if (!purpose) {
-        alert('Please select a purpose');
-        return;
-    }
-    
-    if (!description || description.trim().length < 10) {
-        alert('Please provide a description (at least 10 characters)');
-        return;
-    }
-    
-    // Populate confirmation modal
-    const purposeMap = {
-        'operational': 'Operational Funds',
-        'emergency': 'Emergency Fund',
-        'expansion': 'Expansion',
-        'loan_disbursement': 'Loan Disbursement',
-        'member_support': 'Member Support',
-        'other': 'Other'
-    };
-    
-    document.getElementById('confirmAmount').textContent = 'MWK ' + parseInt(amount).toLocaleString();
-    document.getElementById('confirmPurpose').textContent = purposeMap[purpose];
-    document.getElementById('confirmDescription').textContent = description;
-    document.getElementById('confirmDate').textContent = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
-    // Close request modal and open confirmation modal
-    closeModal('requestMountModal');
-    openModal('confirmMountModal');
+// ==================== HELPERS ====================
+function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return '—';
+    return 'MWK ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
-// Submit Mount Request
-function submitMountRequest() {
-    const amount = document.getElementById('mountAmount').value;
-    const purpose = document.getElementById('mountPurpose').value;
-    
-    // Show success message
-    alert(`Mount request for MWK ${parseInt(amount).toLocaleString()} has been submitted successfully for approval!`);
-    
-    // Reset form
-    document.getElementById('mountAmount').value = '';
-    document.getElementById('mountPurpose').value = '';
-    document.getElementById('mountDescription').value = '';
-    
-    // Close confirmation modal
-    closeModal('confirmMountModal');
+function formatCurrencyWhole(amount) {
+    if (amount === null || amount === undefined) return '—';
+    return 'MWK ' + amount.toLocaleString('en-US');
 }
-// ==================== ADD MEMBER ====================
 
-const API_BASE = "https://codeforbettertomorrow.onrender.com";
+function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+}
 
-function resetAddMemberForm() {
-    document.getElementById('newMemberName').value = '';
-    document.getElementById('newMemberIdentifier').value = '';
-    document.getElementById('newMemberRole').value = 'member';
-    document.getElementById('newMemberPassword').value = '';
-    const errorBox = document.getElementById('addMemberError');
-    errorBox.style.display = 'none';
-    errorBox.innerText = '';
+function formatDateShort(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
 }
 
 function memberInitials(name) {
-    return name.trim().split(/\s+/).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    if (!name) return '—';
+    return name.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase() || '').join('');
 }
 
 function creditScoreClass(score) {
@@ -1576,40 +1021,703 @@ function creditScoreClass(score) {
     return 'score-fair';
 }
 
-// Adds the new member straight into the Member Directory table so the admin
-// sees them immediately. Note: the rest of this table is still static demo
-// data (not yet loaded from the API), so this only affects rows added this way.
-function appendMemberRow(member) {
-    const tbody = document.querySelector('#page-members table tbody');
-    if (!tbody) return;
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    const avatarColors = ['var(--info)', 'var(--danger)', 'var(--accent)', '#8e44ad', 'var(--primary)'];
-    const color = avatarColors[Math.floor(Math.random() * avatarColors.length)];
-    const joined = new Date(member.joined_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
 
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>
-            <div class="member-cell">
-                <div class="member-avatar" style="background:${color};">${memberInitials(member.full_name)}</div>
-                <div>
-                    <div class="member-name">${member.full_name}</div>
-                    <div class="member-phone">${member.member_id}</div>
-                </div>
-            </div>
-        </td>
-        <td>${joined}</td>
-        <td class="amount positive">$${member.savings_balance.toFixed(0)}</td>
-        <td class="amount">$0</td>
-        <td><span class="credit-score ${creditScoreClass(member.credit_score)}"><i class="fas fa-star" style="font-size:9px;"></i> ${member.credit_score}</span></td>
-        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
-    `;
-    tbody.prepend(row);
+function setHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
 
-    const countEl = document.getElementById('totalMembersCount');
-    if (countEl) {
-        countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1;
+// ==================== SIDEBAR & AUTH ====================
+async function loadSidebarInfo() {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load member');
+        const member = await res.json();
+
+        setText('sidebarName', member.full_name);
+        setText('sidebarRole', member.role);
+        setText('sidebarAvatar', memberInitials(member.full_name));
+    } catch (err) {
+        console.error('Sidebar error:', err);
     }
+}
+
+// ==================== OVERVIEW ====================
+async function loadOverview() {
+    if (!requireAuth()) return;
+    try {
+        // Load group summary
+        const groupRes = await fetch(`${API_BASE}/api/groups/${getGroupId()}`, {
+            headers: getAuthHeaders()
+        });
+        if (!groupRes.ok) throw new Error('Failed to load group');
+        const groupData = await groupRes.json();
+
+        // Load admin's own dashboard
+        const dashRes = await fetch(`${API_BASE}/api/members/${getMemberId()}/dashboard`, {
+            headers: getAuthHeaders()
+        });
+        if (!dashRes.ok) throw new Error('Failed to load dashboard');
+        const dashData = await dashRes.json();
+
+        renderOverview(groupData, dashData);
+    } catch (err) {
+        console.error('Overview error:', err);
+    }
+}
+
+function renderOverview(groupData, dashData) {
+    const g = groupData.group || {};
+    const m = dashData.member || {};
+
+    // Header
+    setText('groupNameDisplay', g.name || 'Group');
+
+    // Personal section
+    setText('personalName', m.full_name || '—');
+    setText('personalRole', `${m.role || 'Member'} & Member since ${formatDate(m.joined_at)}`);
+    setText('personalAvatar', memberInitials(m.full_name));
+    setText('personalSavings', formatCurrencyWhole(m.savings_balance));
+
+    // Active loans count for admin
+    const activeLoanCount = (dashData.active_loans || []).length;
+    setText('personalLoans', formatCurrencyWhole(activeLoanCount > 0 ? dashData.active_loans.reduce((s, l) => s + (l.principal - l.total_paid), 0) : 0));
+    setText('personalCredit', m.credit_score || '—');
+
+    // Months saved
+    const joined = new Date(m.joined_at);
+    const now = new Date();
+    const months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth());
+    setText('personalMonths', months > 0 ? months : '< 1');
+
+    // Bank stats
+    setText('totalMembers', g.member_count || '—');
+    setText('totalSavings', formatCurrencyWhole(g.total_savings));
+    setText('activeLoansAmount', formatCurrencyWhole(groupData.total_loans_active ? groupData.total_loans_active * 100 : 0)); // approximate
+    setText('overdueCount', '—'); // Would need dedicated endpoint
+
+    // Recent transactions
+    const txBody = document.getElementById('recentTransactionsBody');
+    if (txBody) {
+        const txs = groupData.recent_transactions || [];
+        if (txs.length === 0) {
+            txBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No transactions yet</td></tr>';
+        } else {
+            txBody.innerHTML = txs.slice(0, 5).map(tx => {
+                const isPositive = ['deposit', 'interest', 'loan_disbursement'].includes(tx.type);
+                return `
+                <tr>
+                    <td>
+                        <div class="member-cell">
+                            <div class="member-avatar">${memberInitials(tx.member_name)}</div>
+                            <div>
+                                <div class="member-name">${escapeHtml(tx.member_name || 'Unknown')}</div>
+                                <div class="member-phone">${tx.member_id || ''}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span style="color:var(${isPositive ? '--success' : '--danger'});"><i class="fas ${isPositive ? 'fa-arrow-down' : 'fa-arrow-up'}" style="font-size:10px;"></i> ${tx.type?.replace(/_/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'Transaction'}</span></td>
+                    <td class="amount ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}${formatCurrency(tx.amount)}</td>
+                    <td>${formatDate(tx.created_at)}</td>
+                    <td><span class="status-badge status-paid"><i class="fas fa-check" style="font-size:8px;"></i> Completed</span></td>
+                </tr>`;
+            }).join('');
+        }
+    }
+
+    // Trend chart — use real transaction data
+    const trendChart = document.getElementById('trendChart');
+    if (trendChart) {
+        const txs = groupData.recent_transactions || [];
+        if (txs.length === 0) {
+            trendChart.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">No transaction data available</div>';
+        } else {
+            // Group by month and sum deposits
+            const monthly = {};
+            txs.forEach(tx => {
+                const d = new Date(tx.created_at);
+                const key = d.toLocaleDateString('en-US', {month: 'short'});
+                if (!monthly[key]) monthly[key] = 0;
+                if (tx.type === 'deposit') monthly[key] += tx.amount;
+            });
+            const labels = Object.keys(monthly);
+            const values = Object.values(monthly);
+            const maxVal = Math.max(...values, 1);
+
+            trendChart.innerHTML = labels.map((label, i) => {
+                const pct = (values[i] / maxVal) * 100;
+                return `
+                <div class="bar-group">
+                    <div class="bar" style="height:${pct}%;background:var(--primary);"><span class="bar-value">${formatCurrencyWhole(values[i])}</span></div>
+                    <div class="bar-label">${label}</div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Portfolio chart
+    const portfolioChart = document.getElementById('portfolioChart');
+    const portfolioLegend = document.getElementById('portfolioLegend');
+    if (portfolioChart && portfolioLegend) {
+        const active = groupData.total_loans_active || 0;
+        const paid = groupData.total_loans_paid || 0;
+        const total = active + paid;
+        if (total === 0) {
+            portfolioChart.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">No loan data</div>';
+            portfolioLegend.style.display = 'none';
+        } else {
+            const activePct = (active / total) * 100;
+            const paidPct = (paid / total) * 100;
+            // SVG donut chart
+            const circumference = 2 * Math.PI * 40;
+            const activeDash = (activePct / 100) * circumference;
+            const paidDash = (paidPct / 100) * circumference;
+
+            portfolioChart.innerHTML = `
+                <svg viewBox="0 0 100 100" width="160" height="160">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#e5e7eb" stroke-width="12"/>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--success)" stroke-width="12"
+                        stroke-dasharray="${paidDash} ${circumference}" stroke-dashoffset="0" stroke-linecap="round"/>
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="12"
+                        stroke-dasharray="${activeDash} ${circumference}" stroke-dashoffset="-${paidDash}" stroke-linecap="round"/>
+                </svg>
+                <div class="donut-center">
+                    <div class="num">${Math.round((paid / total) * 100)}%</div>
+                    <div class="label">Repayment</div>
+                </div>`;
+
+            portfolioLegend.style.display = 'block';
+            portfolioLegend.innerHTML = `
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--success);"></div>
+                    <span>Paid Off</span>
+                    <span class="legend-val">${Math.round(paidPct)}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:var(--accent);"></div>
+                    <span>Active</span>
+                    <span class="legend-val">${Math.round(activePct)}%</span>
+                </div>`;
+        }
+    }
+}
+
+// ==================== MY SAVINGS ====================
+async function loadMySavings() {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/dashboard`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load dashboard');
+        const data = await res.json();
+
+        const m = data.member || {};
+        const g = data.group || {};
+        const txs = data.recent_transactions || [];
+
+        setText('mySavingsTotal', formatCurrencyWhole(m.savings_balance));
+
+        // This month deposits
+        const now = new Date();
+        const thisMonth = txs.filter(tx => {
+            const d = new Date(tx.created_at);
+            return tx.type === 'deposit' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).reduce((s, tx) => s + tx.amount, 0);
+        setText('mySavingsMonth', formatCurrencyWhole(thisMonth));
+        setText('myInterestRate', (g.interest_rate || '—') + '%');
+
+        // Interest earned
+        const interest = txs.filter(tx => tx.type === 'interest').reduce((s, tx) => s + tx.amount, 0);
+        setText('myInterestEarned', formatCurrencyWhole(interest));
+
+        // Chart
+        const chartEl = document.getElementById('mySavingsChart');
+        if (chartEl) {
+            if (txs.length === 0) {
+                chartEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">No transaction data</div>';
+            } else {
+                const monthly = {};
+                txs.forEach(tx => {
+                    const d = new Date(tx.created_at);
+                    const key = d.toLocaleDateString('en-US', {month: 'short'});
+                    if (!monthly[key]) monthly[key] = 0;
+                    if (tx.type === 'deposit') monthly[key] += tx.amount;
+                });
+                const labels = Object.keys(monthly);
+                const values = Object.values(monthly);
+                const maxVal = Math.max(...values, 1);
+                chartEl.innerHTML = labels.map((label, i) => `
+                    <div class="bar-group">
+                        <div class="bar" style="height:${(values[i]/maxVal)*100}%;background:var(--primary);"><span class="bar-value">${formatCurrencyWhole(values[i])}</span></div>
+                        <div class="bar-label">${label}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Transaction history
+        const tbody = document.getElementById('myTransactionHistoryBody');
+        if (tbody) {
+            if (txs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim);">No transactions yet</td></tr>';
+            } else {
+                tbody.innerHTML = txs.map(tx => {
+                    const isPositive = ['deposit', 'interest', 'loan_disbursement'].includes(tx.type);
+                    return `
+                    <tr>
+                        <td><span style="color:var(${isPositive ? '--success' : '--danger'});"><i class="fas ${isPositive ? 'fa-arrow-down' : 'fa-arrow-up'}" style="font-size:10px;"></i> ${tx.type?.replace(/_/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase())}</span></td>
+                        <td class="amount ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : '-'}${formatCurrency(tx.amount)}</td>
+                        <td>${formatDate(tx.created_at)}</td>
+                        <td>${formatCurrency(m.savings_balance)}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    } catch (err) {
+        console.error('My savings error:', err);
+    }
+}
+
+// ==================== MY LOANS ====================
+async function loadMyLoans() {
+    if (!requireAuth()) return;
+    try {
+        const [dashRes, loansRes] = await Promise.all([
+            fetch(`${API_BASE}/api/members/${getMemberId()}/dashboard`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/api/members/${getMemberId()}/loans`, { headers: getAuthHeaders() })
+        ]);
+
+        const dashData = await dashRes.json();
+        const loans = await loansRes.json();
+
+        const m = dashData.member || {};
+        const activeLoans = loans.filter(l => l.status === 'active');
+        const totalOwed = activeLoans.reduce((s, l) => s + (l.principal * (1 + l.interest_rate/100) - l.total_paid), 0);
+
+        setText('myLoanBalance', formatCurrencyWhole(totalOwed));
+        setText('myLoansTaken', loans.length);
+        setText('myLoanCredit', m.credit_score);
+
+        const paidLoans = loans.filter(l => l.status === 'paid_off');
+        const rate = loans.length > 0 ? Math.round((paidLoans.length / loans.length) * 100) : 0;
+        setText('myRepaymentRate', rate + '%');
+
+        // AI insight
+        const insightBox = document.getElementById('aiInsightBox');
+        const insightText = document.getElementById('aiInsightText');
+        if (insightBox && insightText) {
+            if (m.credit_score >= 800) {
+                insightBox.style.display = 'flex';
+                insightText.innerHTML = `<strong>Credit Insight:</strong> Your excellent repayment history gives you a credit score of ${m.credit_score}. You are eligible for preferred loan rates.`;
+            } else if (m.credit_score >= 650) {
+                insightBox.style.display = 'flex';
+                insightText.innerHTML = `<strong>Credit Insight:</strong> Your credit score is ${m.credit_score}. Keep making regular payments to improve your eligibility.`;
+            } else {
+                insightBox.style.display = 'none';
+            }
+        }
+
+        // Loan history table
+        const tbody = document.getElementById('myLoanHistoryBody');
+        if (tbody) {
+            if (loans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No loans yet</td></tr>';
+            } else {
+                tbody.innerHTML = loans.map(loan => {
+                    const statusClass = loan.status === 'paid_off' ? 'loan-status-paid' :
+                                       loan.status === 'active' ? 'loan-status-active' : 'loan-status-pending';
+                    const statusText = loan.status === 'paid_off' ? 'Paid Off' :
+                                      loan.status === 'active' ? 'Active' : 'Pending';
+                    return `
+                    <tr>
+                        <td>${loan.loan_number}</td>
+                        <td class="amount">${formatCurrencyWhole(loan.principal)}</td>
+                        <td>${loan.interest_rate}% / year</td>
+                        <td>${loan.duration_months} months</td>
+                        <td>${formatCurrencyWhole(loan.total_paid)}</td>
+                        <td><span class="status-badge ${statusClass}"><i class="fas ${loan.status === 'paid_off' ? 'fa-check' : loan.status === 'active' ? 'fa-circle' : 'fa-clock'}" style="font-size:8px;"></i> ${statusText}</span></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    } catch (err) {
+        console.error('My loans error:', err);
+    }
+}
+
+// ==================== MEMBERS ====================
+async function loadMembers() {
+    if (!requireAuth()) return;
+    try {
+        const [groupRes, membersRes] = await Promise.all([
+            fetch(`${API_BASE}/api/groups/${getGroupId()}`, { headers: getAuthHeaders() }),
+            fetch(`${API_BASE}/api/groups/${getGroupId()}/members`, { headers: getAuthHeaders() })
+        ]);
+
+        const groupData = await groupRes.json();
+        const members = await membersRes.json();
+
+        setText('membersTotalCount', members.length);
+
+        // New this month
+        const now = new Date();
+        const newThisMonth = members.filter(m => {
+            const d = new Date(m.joined_at);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).length;
+        setText('membersNewCount', newThisMonth);
+
+        // Active savers (have savings > 0)
+        const activeSavers = members.filter(m => m.savings_balance > 0).length;
+        setText('membersActiveSavers', activeSavers);
+
+        // At risk (credit score < 600)
+        const atRisk = members.filter(m => m.credit_score < 600).length;
+        setText('membersAtRisk', atRisk);
+
+        // Directory
+        const tbody = document.getElementById('membersDirectoryBody');
+        if (tbody) {
+            if (members.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No members yet</td></tr>';
+            } else {
+                const colors = ['var(--info)', 'var(--danger)', 'var(--accent)', '#8e44ad', 'var(--primary)'];
+                tbody.innerHTML = members.map((member, i) => {
+                    const color = colors[i % colors.length];
+                    const joined = new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
+                    return `
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:${color};">${memberInitials(member.full_name)}</div>
+                                <div>
+                                    <div class="member-name">${escapeHtml(member.full_name)}</div>
+                                    <div class="member-phone">${member.member_id}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${joined}</td>
+                        <td class="amount positive">${formatCurrencyWhole(member.savings_balance)}</td>
+                        <td class="amount">${formatCurrencyWhole(0)}</td>
+                        <td><span class="credit-score ${creditScoreClass(member.credit_score)}"><i class="fas fa-star" style="font-size:9px;"></i> ${member.credit_score}</span></td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> Active</span></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+    } catch (err) {
+        console.error('Members error:', err);
+    }
+}
+
+// ==================== LOANS ====================
+async function loadLoans() {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/groups/${getGroupId()}/loans`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load loans');
+        const loans = await res.json();
+
+        const active = loans.filter(l => l.status === 'active');
+        const pending = loans.filter(l => l.status === 'pending');
+        const paid = loans.filter(l => l.status === 'paid_off');
+        const overdue = loans.filter(l => l.status === 'defaulted');
+
+        const totalDisbursed = loans.reduce((s, l) => s + l.principal, 0);
+        const totalPaid = loans.reduce((s, l) => s + l.total_paid, 0);
+        const repaymentRate = totalDisbursed > 0 ? Math.round((totalPaid / (totalDisbursed * 1.1)) * 100) : 0;
+
+        setText('loansTotalDisbursed', formatCurrencyWhole(totalDisbursed));
+        setText('loansRepaymentRate', repaymentRate + '%');
+        setText('loansPendingCount', pending.length);
+        setText('loansOverdueCount', overdue.length);
+
+        // Update tab counts
+        document.querySelectorAll('.tab').forEach(tab => {
+            const text = tab.textContent;
+            if (text.includes('Pending')) tab.textContent = `Pending (${pending.length})`;
+            if (text.includes('Overdue')) tab.textContent = `Overdue (${overdue.length})`;
+        });
+
+        // All loans
+        const allBody = document.getElementById('loansAllBody');
+        if (allBody) {
+            if (active.length === 0) {
+                allBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-dim);">No active loans</td></tr>';
+            } else {
+                allBody.innerHTML = active.map(loan => {
+                    const totalDue = loan.principal * (1 + loan.interest_rate / 100);
+                    const progress = totalDue > 0 ? (loan.total_paid / totalDue) * 100 : 0;
+                    const remaining = totalDue - loan.total_paid;
+                    return `
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">${memberInitials(loan.member_name)}</div>
+                                <div class="member-name">${escapeHtml(loan.member_name || 'Unknown')}</div>
+                            </div>
+                        </td>
+                        <td class="amount">${formatCurrencyWhole(loan.principal)}</td>
+                        <td>${loan.interest_rate}% / year</td>
+                        <td>${loan.duration_months} months</td>
+                        <td>
+                            <div class="loan-progress-mini">
+                                <div class="bar"><div class="fill" style="width:${progress}%;background:var(--success);"></div></div>
+                                <div class="label">${formatCurrencyWhole(loan.total_paid)} / ${formatCurrencyWhole(remaining)} left</div>
+                            </div>
+                        </td>
+                        <td><span class="status-badge status-active"><i class="fas fa-circle" style="font-size:6px;"></i> On Track</span></td>
+                        <td><button class="btn btn-outline btn-sm" onclick="viewLoan(${loan.id})">View</button></td>
+                    </tr>`;
+                }).join('');
+            }
+        }
+
+        // Pending
+        const pendingBody = document.getElementById('loansPendingBody');
+        if (pendingBody) {
+            if (pending.length === 0) {
+                pendingBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No pending applications</td></tr>';
+            } else {
+                pendingBody.innerHTML = pending.map(loan => `
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">${memberInitials(loan.member_name)}</div>
+                                <div class="member-name">${escapeHtml(loan.member_name || 'Unknown')}</div>
+                            </div>
+                        </td>
+                        <td class="amount">${formatCurrencyWhole(loan.principal)}</td>
+                        <td>${loan.purpose?.replace(/_/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || '—'}</td>
+                        <td><span class="credit-score ${creditScoreClass(loan.member_credit || 700)}"><i class="fas fa-star" style="font-size:9px;"></i> ${loan.member_credit || 700}</span></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="approveLoan(${loan.id})">Approve</button>
+                            <button class="btn btn-outline btn-sm" onclick="rejectLoan(${loan.id})">Reject</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Overdue
+        const overdueBody = document.getElementById('loansOverdueBody');
+        if (overdueBody) {
+            if (overdue.length === 0) {
+                overdueBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No overdue loans</td></tr>';
+            } else {
+                overdueBody.innerHTML = overdue.map(loan => `
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:var(--danger);">${memberInitials(loan.member_name)}</div>
+                                <div class="member-name">${escapeHtml(loan.member_name || 'Unknown')}</div>
+                            </div>
+                        </td>
+                        <td class="amount negative">${formatCurrencyWhole(loan.principal)}</td>
+                        <td><span style="color:var(--danger);font-weight:600;">${loan.due_date ? Math.ceil((new Date() - new Date(loan.due_date)) / (1000 * 60 * 60 * 24)) + ' days' : '—'}</span></td>
+                        <td>—</td>
+                        <td>
+                            <button class="btn btn-outline btn-sm">Contact</button>
+                            <button class="btn btn-outline btn-sm">Restructure</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Paid off
+        const paidBody = document.getElementById('loansPaidBody');
+        if (paidBody) {
+            if (paid.length === 0) {
+                paidBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No paid off loans</td></tr>';
+            } else {
+                paidBody.innerHTML = paid.map(loan => `
+                    <tr>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar">${memberInitials(loan.member_name)}</div>
+                                <div class="member-name">${escapeHtml(loan.member_name || 'Unknown')}</div>
+                            </div>
+                        </td>
+                        <td class="amount">${formatCurrencyWhole(loan.principal)}</td>
+                        <td>${loan.interest_rate}% / year</td>
+                        <td>${formatCurrencyWhole(loan.total_paid)}</td>
+                        <td>${formatDate(loan.paid_off_at)}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        console.error('Loans error:', err);
+    }
+}
+
+async function approveLoan(loanId) {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/loans/${loanId}/approve`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ approver_id: getMemberId() })
+        });
+        if (!res.ok) throw new Error('Approval failed');
+        alert('Loan approved successfully');
+        loadLoans();
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function rejectLoan(loanId) {
+    if (!confirm('Are you sure you want to reject this loan?')) return;
+    // Backend doesn't have a reject endpoint yet, so we just alert
+    alert('Loan rejection not yet implemented on backend');
+}
+
+function viewLoan(loanId) {
+    alert('View loan details: ' + loanId);
+}
+
+// ==================== FRAUD ====================
+async function loadFraud() {
+    if (!requireAuth()) return;
+    // Fraud detection is not implemented in backend yet
+    setText('fraudActiveAlerts', '0');
+    setText('fraudAccuracy', '—');
+    setText('fraudMonitored', '—');
+    setText('fraudDetectionTime', '—');
+
+    const container = document.getElementById('fraudAlertsContainer');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-dim);">Fraud detection not yet configured</div>';
+
+    const resolvedBody = document.getElementById('fraudResolvedBody');
+    if (resolvedBody) resolvedBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">No resolved alerts</td></tr>';
+}
+
+// ==================== SAVINGS POOL ====================
+async function loadSavingsPool() {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/groups/${getGroupId()}`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load group');
+        const data = await res.json();
+
+        setText('poolTotalSavings', formatCurrencyWhole(data.total_savings));
+        setText('poolActiveSavers', data.total_members || '—');
+        setText('poolInterestRate', (data.group?.interest_rate || '—') + '%');
+        setText('poolInterestPaid', '—'); // Not tracked in backend yet
+
+        // Top savers
+        const tbody = document.getElementById('topSaversBody');
+        if (tbody) {
+            const top = (data.top_members || []).slice(0, 10);
+            if (top.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);">No savers yet</td></tr>';
+            } else {
+                const colors = ['var(--accent)', 'var(--text-dim)', 'var(--primary)'];
+                tbody.innerHTML = top.map((member, i) => `
+                    <tr>
+                        <td><span style="color:${colors[Math.min(i, 2)]};font-weight:700;">#${i + 1}</span></td>
+                        <td>
+                            <div class="member-cell">
+                                <div class="member-avatar" style="background:${i === 0 ? '#8e44ad' : i === 1 ? 'var(--accent)' : 'var(--primary)'};">${memberInitials(member.full_name)}</div>
+                                <div class="member-name">${escapeHtml(member.full_name)}</div>
+                            </div>
+                        </td>
+                        <td class="amount positive">${formatCurrencyWhole(member.savings_balance)}</td>
+                        <td>${member.total_shares || 0}</td>
+                        <td><span class="credit-score ${creditScoreClass(member.credit_score)}"><i class="fas fa-star" style="font-size:9px;"></i> ${member.credit_score}</span></td>
+                    </tr>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        console.error('Savings pool error:', err);
+    }
+}
+
+// ==================== REPORTS ====================
+async function loadReports() {
+    if (!requireAuth()) return;
+    setText('reportsGenerated', '0');
+    setText('reportsCurrentPeriod', new Date().toLocaleDateString('en-US', {month: 'short', year: 'numeric'}));
+
+    const tbody = document.getElementById('reportsListBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-dim);">No reports generated yet</td></tr>';
+}
+
+// ==================== SETTINGS ====================
+async function loadSettings() {
+    if (!requireAuth()) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/groups/${getGroupId()}`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load group');
+        const data = await res.json();
+        const g = data.group || {};
+
+        setText('settingsGroupName', g.name || '—');
+        setText('settingsSavingsInterest', (g.interest_rate || '—') + '%');
+        setText('settingsLoanRange', '—'); // Not in backend
+        setText('settingsMaxLoan', '—'); // Not in backend
+
+        const tbody = document.getElementById('settingsConfigBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td><i class="fas fa-percentage" style="color:var(--primary);margin-right:8px;"></i> Savings Interest Rate</td>
+                    <td><strong>${g.interest_rate || '—'}%</strong></td>
+                    <td>Annual interest paid on member savings</td>
+                    <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-coins" style="color:var(--primary);margin-right:8px;"></i> Share Value</td>
+                    <td><strong>${formatCurrencyWhole(g.share_value || 100)}</strong></td>
+                    <td>Value per share in the group</td>
+                    <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                </tr>
+                <tr>
+                    <td><i class="fas fa-clock" style="color:var(--primary);margin-right:8px;"></i> Cycle Duration</td>
+                    <td><strong>${g.cycle_duration_months || '—'} months</strong></td>
+                    <td>Savings cycle length</td>
+                    <td><button class="btn btn-outline btn-sm">Edit</button></td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        console.error('Settings error:', err);
+    }
+}
+
+// ==================== ADD MEMBER ====================
+function resetAddMemberForm() {
+    document.getElementById('newMemberName').value = '';
+    document.getElementById('newMemberIdentifier').value = '';
+    document.getElementById('newMemberRole').value = 'member';
+    document.getElementById('newMemberPassword').value = '';
+    const errorBox = document.getElementById('addMemberError');
+    errorBox.style.display = 'none';
+    errorBox.innerText = '';
 }
 
 async function submitAddMember() {
@@ -1634,9 +1742,12 @@ async function submitAddMember() {
         return;
     }
 
-    // Falls back to the seeded demo group (id 1) if there's no active session yet —
-    // real admin sessions set this in sessionStorage during login.
-    const groupId = sessionStorage.getItem('titukulane_group_id') || 1;
+    const groupId = getGroupId();
+    if (!groupId) {
+        errorBox.innerText = 'No active group session. Please log in again.';
+        errorBox.style.display = 'block';
+        return;
+    }
 
     const originalBtnHtml = submitBtn.innerHTML;
     submitBtn.innerHTML = 'Adding…';
@@ -1645,7 +1756,7 @@ async function submitAddMember() {
     try {
         const response = await fetch(`${API_BASE}/api/groups/${groupId}/members`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({
                 full_name: fullName,
                 identifier: identifier,
@@ -1664,10 +1775,10 @@ async function submitAddMember() {
             return;
         }
 
-        appendMemberRow(data);
         closeModal('addMemberModal');
         alert(`${data.full_name} was added successfully.\n\nShare their login details:\nGroup name + Identifier: ${data.identifier}\nTemporary password: ${password}`);
         resetAddMemberForm();
+        loadMembers(); // Refresh the members list with real data
     } catch (err) {
         errorBox.innerText = 'Could not reach the server. Check your connection and try again.';
         errorBox.style.display = 'block';
@@ -1675,6 +1786,55 @@ async function submitAddMember() {
         submitBtn.innerHTML = originalBtnHtml;
         submitBtn.disabled = false;
     }
+}
+
+// ==================== MOUNT REQUEST ====================
+function confirmMountRequest() {
+    const amount = document.getElementById('mountAmount').value;
+    const purpose = document.getElementById('mountPurpose').value;
+    const description = document.getElementById('mountDescription').value;
+
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    if (!purpose) {
+        alert('Please select a purpose');
+        return;
+    }
+    if (!description || description.trim().length < 10) {
+        alert('Please provide a description (at least 10 characters)');
+        return;
+    }
+
+    const purposeMap = {
+        'operational': 'Operational Funds',
+        'emergency': 'Emergency Fund',
+        'expansion': 'Expansion',
+        'loan_disbursement': 'Loan Disbursement',
+        'member_support': 'Member Support',
+        'other': 'Other'
+    };
+
+    document.getElementById('confirmAmount').textContent = 'MWK ' + parseInt(amount).toLocaleString();
+    document.getElementById('confirmPurpose').textContent = purposeMap[purpose];
+    document.getElementById('confirmDescription').textContent = description;
+    document.getElementById('confirmRequester').textContent = getFullName() + ' (' + getRole() + ')';
+    document.getElementById('confirmDate').textContent = new Date().toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    closeModal('requestMountModal');
+    openModal('confirmMountModal');
+}
+
+function submitMountRequest() {
+    const amount = document.getElementById('mountAmount').value;
+    alert(`Mount request for MWK ${parseInt(amount).toLocaleString()} has been submitted successfully for approval!`);
+    document.getElementById('mountAmount').value = '';
+    document.getElementById('mountPurpose').value = '';
+    document.getElementById('mountDescription').value = '';
+    closeModal('confirmMountModal');
 }
 </script>
 
