@@ -35,6 +35,10 @@ function logout() {
     sessionStorage.clear();
     window.location.href = 'index.html';
 }
+// HTML calls handleLogout() on the profile page — keep both names working
+function handleLogout() {
+    logout();
+}
 
 // ==================== TOASTS ====================
 function showToast(message, type = 'info') {
@@ -97,6 +101,8 @@ function openModal(id) {
         modal.classList.add('open');
         document.body.style.overflow = 'hidden';
     }
+    // Load fresh data for modals that show server-backed content
+    if (id === 'notifModal') loadNotifications();
 }
 
 function closeModal(id) {
@@ -153,6 +159,21 @@ function formatDateLong(dateStr) {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+function money(amount) {
+    const n = Number(amount) || 0;
+    return `MWK ${n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+}
+
+// Frontend uses short payment-method codes; the API expects its enum values.
+// This maps between the two so requests always validate on the backend.
+const METHOD_MAP = {
+    tnm: 'tnm_mpamba',
+    airtel: 'airtel_money',
+    bank: 'national_bank',
+    mtn: 'airtel_money',
+    cash: 'cash'
+};
+
 // ==================== DASHBOARD ====================
 async function loadDashboard() {
     if (!requireAuth()) return;
@@ -171,36 +192,53 @@ async function loadDashboard() {
 
 function renderDashboard(data) {
     // Balance
-    const balanceEl = document.querySelector('.balance-amount');
+    const balanceEl = document.getElementById('balanceAmount') || document.querySelector('.balance-amount');
     if (balanceEl) {
-        balanceEl.textContent = `MWK ${data.member.savings_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        balanceEl.textContent = money(data.member.savings_balance);
     }
 
     // Interest rate
-    const interestEl = document.querySelector('.balance-row .balance-item:nth-child(2)');
-    if (interestEl) {
-        interestEl.innerHTML = `<i class="fas fa-percentage" style="color:var(--accent);"></i> ${data.group.interest_rate}% interest`;
+    const interestRateEl = document.getElementById('interestRate');
+    if (interestRateEl) {
+        interestRateEl.textContent = data.group.interest_rate;
+    } else {
+        const interestEl = document.querySelector('.balance-row .balance-item:nth-child(2)');
+        if (interestEl) {
+            interestEl.innerHTML = `<i class="fas fa-percentage" style="color:var(--accent);"></i> ${data.group.interest_rate}% interest`;
+        }
     }
 
-    // Profile name
+    // Profile name / avatar
     const displayName = document.getElementById('displayName');
     if (displayName) displayName.textContent = data.member.full_name;
+    const profileAvatar = document.getElementById('profileAvatar');
+    if (profileAvatar && data.member.full_name) {
+        profileAvatar.textContent = data.member.full_name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    }
 
     // Profile stats
-    const profileStats = document.querySelectorAll('.profile-stat .num');
-    if (profileStats[0]) profileStats[0].textContent = `MWK ${data.member.savings_balance.toLocaleString()}`;
-    if (profileStats[1]) profileStats[1].textContent = data.member.credit_score;
-    if (profileStats[2]) profileStats[2].textContent = data.group.total_members;
+    const profileSavings = document.getElementById('profileSavings');
+    if (profileSavings) profileSavings.textContent = money(data.member.savings_balance);
+    const profileCreditScore = document.getElementById('profileCreditScore');
+    if (profileCreditScore) profileCreditScore.textContent = data.member.credit_score;
+    const profileLoanCount = document.getElementById('profileLoanCount');
+    if (profileLoanCount) profileLoanCount.textContent = data.active_loans ? data.active_loans.length : 0;
 
-    // Member ID line
-    const profileId = document.querySelector('.profile-id');
+    // Member ID / joined line
+    const profileId = document.getElementById('profileId') || document.querySelector('.profile-id');
     if (profileId) {
         const joined = new Date(data.member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
         profileId.textContent = `Member ID: ${data.member.member_id} | Since ${joined}`;
     }
 
     // Savings goal
-    if (data.savings_goal) renderSavingsGoal(data.savings_goal);
+    const goalSection = document.getElementById('savingsGoalSection');
+    if (data.savings_goal) {
+        if (goalSection) goalSection.style.display = 'block';
+        renderSavingsGoal(data.savings_goal);
+    } else if (goalSection) {
+        goalSection.style.display = 'none';
+    }
 
     // Transactions
     renderTransactions(data.recent_transactions);
@@ -212,7 +250,7 @@ function renderDashboard(data) {
     renderNotes(data.recent_notes);
 
     // Notification dot
-    const notifDot = document.querySelector('.header-btn .dot');
+    const notifDot = document.getElementById('notifDot') || document.querySelector('.header-btn .dot');
     if (notifDot) {
         notifDot.style.display = data.unread_notifications > 0 ? 'block' : 'none';
     }
@@ -222,24 +260,31 @@ function renderDashboard(data) {
 }
 
 function renderSavingsGoal(goal) {
-    const goalName = document.querySelector('.goal-name');
-    const goalTarget = document.querySelector('.goal-target');
-    const goalFill = document.querySelector('.goal-progress-fill');
-    const currentSaved = document.querySelector('.goal-stats .current');
-    const targetLeft = document.querySelector('.goal-stats .target');
+    const goalIcon = document.getElementById('goalIcon');
+    const goalName = document.getElementById('goalName') || document.querySelector('.goal-name');
+    const goalTarget = document.getElementById('goalTarget') || document.querySelector('.goal-target');
+    const goalFill = document.getElementById('goalProgressFill') || document.querySelector('.goal-progress-fill');
+    const currentSaved = document.getElementById('goalCurrent') || document.querySelector('.goal-stats .current');
+    const targetLeft = document.getElementById('goalRemaining') || document.querySelector('.goal-stats .target');
 
+    if (goalIcon && goal.icon) goalIcon.textContent = goal.icon;
     if (goalName) goalName.textContent = goal.name;
-    if (goalTarget) goalTarget.textContent = `Target: MWK ${goal.target_amount.toLocaleString()}`;
+    if (goalTarget) goalTarget.textContent = `Target: ${money(goal.target_amount)}`;
 
     const pct = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
     if (goalFill) goalFill.style.width = `${Math.min(pct, 100)}%`;
-    if (currentSaved) currentSaved.textContent = `MWK ${goal.current_amount.toLocaleString()} saved`;
-    if (targetLeft) targetLeft.textContent = `MWK ${Math.max(0, goal.target_amount - goal.current_amount).toLocaleString()} to go`;
+    if (currentSaved) currentSaved.textContent = `${money(goal.current_amount)} saved`;
+    if (targetLeft) targetLeft.textContent = `${money(Math.max(0, goal.target_amount - goal.current_amount))} to go`;
 }
 
 function renderTransactions(transactions) {
-    const txList = document.querySelector('.tx-list');
-    if (!txList || !transactions) return;
+    const txList = document.getElementById('homeTxList') || document.querySelector('.tx-list');
+    if (!txList) return;
+
+    if (!transactions || transactions.length === 0) {
+        txList.innerHTML = `<div class="tx-item"><div class="tx-info"><div class="tx-sub">No transactions yet</div></div></div>`;
+        return;
+    }
 
     txList.innerHTML = transactions.map(tx => {
         const isPositive = ['deposit', 'interest', 'loan_disbursement'].includes(tx.type);
@@ -270,26 +315,98 @@ function renderTransactions(transactions) {
     }).join('');
 }
 
+function loanCardHtml(loan) {
+    const statusClass = loan.status === 'paid_off' ? 'loan-status-paid' :
+                        loan.status === 'active' ? 'loan-status-active' : 'loan-status-pending';
+    const statusText = loan.status === 'paid_off' ? 'Paid Off' :
+                       loan.status === 'active' ? 'Active' :
+                       loan.status === 'pending' ? 'Pending' : 'Defaulted';
+
+    return `
+        <div class="loan-card">
+            <div class="loan-card-header">
+                <div class="loan-card-title">${escapeHtml(loan.title)}</div>
+                <div class="loan-card-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="loan-amount-row">
+                <div class="loan-amount-item">
+                    <div class="num">MWK ${loan.principal.toLocaleString()}</div>
+                    <div class="label">Principal</div>
+                </div>
+                <div class="loan-amount-item">
+                    <div class="num">${loan.interest_rate}%</div>
+                    <div class="label">Interest</div>
+                </div>
+                <div class="loan-amount-item">
+                    <div class="num">MWK ${loan.total_paid.toLocaleString()}</div>
+                    <div class="label">Total Paid</div>
+                </div>
+            </div>
+            <div class="loan-due">${loan.status === 'paid_off' ? 'Paid off on' : 'Due'} <span>${loan.due_date ? formatDateLong(loan.due_date) : 'N/A'}</span></div>
+        </div>`;
+}
+
 function renderLoans(loans) {
-    const noLoanSection = document.querySelector('.no-loan');
-    if (!loans || loans.length === 0) {
-        if (noLoanSection) noLoanSection.style.display = 'block';
-        return;
+    // Home page teaser
+    const teaser = document.getElementById('homeLoansTeaser');
+    if (teaser) {
+        if (!loans || loans.length === 0) {
+            teaser.innerHTML = `
+                <div class="no-loan">
+                    <div class="no-loan-icon">🎉</div>
+                    <div class="no-loan-title">No active loans</div>
+                    <div class="no-loan-desc">You have no loans right now. Great job!</div>
+                    <button class="loan-btn primary" style="max-width:240px;margin:0 auto;" onclick="openModal('loanModal')">
+                        <i class="fas fa-plus"></i> Request New Loan
+                    </button>
+                </div>`;
+        } else {
+            teaser.innerHTML = loans.map(loanCardHtml).join('');
+        }
     }
-    if (noLoanSection) noLoanSection.style.display = 'none';
+
+    // Loans page "active loans" section
+    const activeContainer = document.getElementById('activeLoansContainer');
+    if (activeContainer) {
+        if (!loans || loans.length === 0) {
+            activeContainer.innerHTML = `
+                <div class="no-loan">
+                    <div class="no-loan-icon">🎉</div>
+                    <div class="no-loan-title">No active loans</div>
+                    <div class="no-loan-desc">You have no active loans right now.</div>
+                    <button class="loan-btn primary" style="max-width:240px;margin:0 auto;" onclick="openModal('loanModal')">
+                        <i class="fas fa-plus"></i> Request a Loan
+                    </button>
+                </div>`;
+        } else {
+            activeContainer.innerHTML = loans.map(loanCardHtml).join('');
+        }
+    }
 }
 
 function renderNotes(notes) {
     const notesList = document.getElementById('notesList');
-    if (!notesList || !notes) return;
+    if (!notesList) return;
 
-    notesList.innerHTML = notes.map(note => `
-        <div class="note-item">
-            <div class="note-date">${formatDateLong(note.note_date)}</div>
-            <div class="note-text">${escapeHtml(note.text)}</div>
-            <div class="note-mood">${escapeHtml(note.mood)}</div>
-        </div>
-    `).join('');
+    if (!notes || notes.length === 0) {
+        notesList.innerHTML = `<div class="note-item"><div class="note-text">No notes yet. Add your first one above.</div></div>`;
+    } else {
+        notesList.innerHTML = notes.map(note => `
+            <div class="note-item">
+                <div class="note-date">${formatDateLong(note.note_date)}</div>
+                <div class="note-text">${escapeHtml(note.text)}</div>
+                <div class="note-mood">${escapeHtml(note.mood)}</div>
+            </div>
+        `).join('');
+    }
+
+    const notesCount = document.getElementById('notesCount');
+    if (notesCount) notesCount.textContent = `${notes ? notes.length : 0} notes`;
+
+    const noteTodayDate = document.getElementById('noteTodayDate');
+    if (noteTodayDate) {
+        noteTodayDate.textContent = new Date().toLocaleDateString('en-US', {month: 'long', day: 'numeric', year: 'numeric'});
+    }
 }
 
 function updateMetricsChart(currentBalance) {
@@ -365,7 +482,7 @@ function updateMetricsChart(currentBalance) {
 let selectedDepositMethod = null;
 
 function selectDepositPayment(element, method) {
-    document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('#depositModal .payment-method').forEach(el => el.classList.remove('active'));
     element.classList.add('active');
     selectedDepositMethod = method;
 
@@ -425,12 +542,12 @@ async function confirmDeposit() {
     setLoading(btn, true, 'Processing...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/deposit`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/deposit`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
                 amount: amount,
-                method: selectedDepositMethod,
+                method: METHOD_MAP[selectedDepositMethod] || selectedDepositMethod,
                 phone: document.querySelector('#phoneField input')?.value,
                 pin: passwordInput?.value
             })
@@ -439,7 +556,7 @@ async function confirmDeposit() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Deposit failed');
 
-        showToast(`Deposit successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Deposit successful! New balance: ${money(data.new_balance)}`, 'success');
 
         if (passwordInput) passwordInput.value = '';
         closeModal('depositModal');
@@ -452,169 +569,170 @@ async function confirmDeposit() {
 }
 
 // ==================== WITHDRAWAL ====================
-async function confirmWithdrawal() {
+let selectedWithdrawMethod = 'bank';
+
+function selectPayment(element, method) {
+    document.querySelectorAll('#withdrawModal .payment-method').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    selectedWithdrawMethod = method;
+
+    const phoneField = document.getElementById('withdrawPhoneField');
+    const bankField = document.getElementById('withdrawBankField');
+
+    if (method === 'bank') {
+        bankField?.classList.remove('hidden');
+        phoneField?.classList.add('hidden');
+    } else {
+        phoneField?.classList.remove('hidden');
+        bankField?.classList.add('hidden');
+    }
+}
+
+async function confirmWithdraw() {
     if (!requireAuth()) return;
 
-    const amountInput = document.querySelector('#withdrawModal input[type="number"]');
+    const amountInput = document.getElementById('withdrawAmount') || document.querySelector('#withdrawModal input[type="number"]');
     const amount = parseFloat(amountInput?.value);
+    const errorBox = document.getElementById('withdrawError');
+    if (errorBox) errorBox.style.display = 'none';
 
     if (!amount || amount <= 0) {
         showToast('Please enter a valid amount', 'error');
         return;
     }
 
-    const btn = document.querySelector('#withdrawModal .modal-submit');
+    const btn = document.getElementById('withdrawSubmitBtn') || document.querySelector('#withdrawModal .modal-submit');
     setLoading(btn, true, 'Processing...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/withdraw`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/withdraw`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ amount: amount, method: 'cash' })
+            body: JSON.stringify({
+                amount: amount,
+                method: METHOD_MAP[selectedWithdrawMethod] || 'cash',
+                phone: document.getElementById('withdrawPhone')?.value
+            })
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Withdrawal failed');
 
-        showToast(`Withdrawal successful! New balance: MWK ${data.new_balance.toFixed(2)}`, 'success');
+        showToast(`Withdrawal successful! New balance: ${money(data.new_balance)}`, 'success');
         closeModal('withdrawModal');
         loadDashboard();
     } catch (err) {
-        showToast(err.message, 'error');
+        if (errorBox) {
+            errorBox.textContent = err.message;
+            errorBox.style.display = 'block';
+        } else {
+            showToast(err.message, 'error');
+        }
     } finally {
         setLoading(btn, false);
     }
 }
+// Backward-compatible alias
+async function confirmWithdrawal() { return confirmWithdraw(); }
 
 // ==================== LOANS ====================
-async function requestLoan() {
+async function submitLoanRequest() {
     if (!requireAuth()) return;
 
-    const amountInput = document.querySelector('#loanModal input[type="number"]');
-    const purposeSelect = document.querySelector('#loanModal select');
-    const durationSelect = document.querySelectorAll('#loanModal select')[1];
+    const amountInput = document.getElementById('loanAmount') || document.querySelector('#loanModal input[type="number"]');
+    const purposeSelect = document.getElementById('loanPurpose') || document.querySelector('#loanModal select');
+    const durationSelect = document.getElementById('loanDuration') || document.querySelectorAll('#loanModal select')[1];
 
     const amount = parseFloat(amountInput?.value);
+    const errorBox = document.getElementById('loanError');
+    if (errorBox) errorBox.style.display = 'none';
+
     if (!amount || amount <= 0) {
         showToast('Please enter a valid loan amount', 'error');
         return;
     }
 
-    const purposeMap = {
-        'Farm Equipment': 'farm_equipment',
-        'Business': 'business',
-        'School Fees': 'school_fees',
-        'Medical': 'medical',
-        'Home Improvement': 'home_improvement',
-        'Other': 'other'
-    };
+    // <select> options already carry the backend's purpose codes (farm_equipment, business, ...)
+    const purposeValue = purposeSelect?.value || 'other';
+    const purposeTitle = purposeValue.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+    const durationMonths = parseInt(durationSelect?.value) || 12;
 
-    const durationMap = { '3 months': 3, '6 months': 6, '12 months': 12 };
-
-    const btn = document.querySelector('#loanModal .modal-submit');
+    const btn = document.getElementById('loanSubmitBtn') || document.querySelector('#loanModal .modal-submit');
     setLoading(btn, true, 'Submitting...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/loans`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/loans`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
-                title: `${purposeSelect?.value || 'Personal'} Loan`,
-                purpose: purposeMap[purposeSelect?.value] || 'other',
+                title: `${purposeTitle} Loan`,
+                purpose: purposeValue,
                 principal: amount,
                 interest_rate: 8.0,
-                duration_months: durationMap[durationSelect?.value] || 12
+                duration_months: durationMonths
             })
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Loan request failed');
 
-        showToast(`Loan submitted! ${data.loan_number}. Monthly: MWK ${data.monthly_payment.toFixed(2)}`, 'success');
+        showToast(`Loan submitted! ${data.loan_number}. Monthly: ${money(data.monthly_payment)}`, 'success');
         closeModal('loanModal');
         loadDashboard();
+        loadLoanHistory();
     } catch (err) {
-        showToast(err.message, 'error');
+        if (errorBox) {
+            errorBox.textContent = err.message;
+            errorBox.style.display = 'block';
+        } else {
+            showToast(err.message, 'error');
+        }
     } finally {
         setLoading(btn, false);
     }
 }
+// Backward-compatible alias
+async function requestLoan() { return submitLoanRequest(); }
 
 async function loadLoanHistory() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/loans`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/loans`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load loans');
         const loans = await res.json();
         renderLoanHistory(loans);
+
+        const activeLoans = loans.filter(l => l.status === 'active');
+        renderLoans(activeLoans);
     } catch (err) {
         showToast(err.message, 'error');
     }
 }
 
 function renderLoanHistory(loans) {
-    const container = document.querySelector('#page-loans .section > div:last-child');
+    const container = document.getElementById('loanHistoryContainer');
     if (!container) return;
 
-    const header = container.querySelector('.section-header');
-    container.innerHTML = '';
-    if (header) container.appendChild(header);
-
     if (!loans || loans.length === 0) {
-        container.innerHTML += `
-            <div class="no-loan">
-                <div class="no-loan-icon">🎉</div>
-                <div class="no-loan-title">No active loans</div>
-                <div class="no-loan-desc">You have paid off all your loans. Great job!</div>
-                <button class="loan-btn primary" style="max-width:240px;margin:0 auto;" onclick="openModal('loanModal')">
-                    <i class="fas fa-plus"></i> Request a Loan
-                </button>
-            </div>`;
+        container.innerHTML = `<div class="loan-card"><div class="loan-card-header"><div class="loan-card-title">No loan history yet</div></div></div>`;
         return;
     }
 
-    loans.forEach(loan => {
-        const statusClass = loan.status === 'paid_off' ? 'loan-status-paid' :
-                            loan.status === 'active' ? 'loan-status-active' : 'loan-status-pending';
-        const statusText = loan.status === 'paid_off' ? 'Paid Off' :
-                           loan.status === 'active' ? 'Active' : 'Pending';
-
-        container.innerHTML += `
-            <div class="loan-card">
-                <div class="loan-card-header">
-                    <div class="loan-card-title">${escapeHtml(loan.title)}</div>
-                    <div class="loan-card-status ${statusClass}">${statusText}</div>
-                </div>
-                <div class="loan-amount-row">
-                    <div class="loan-amount-item">
-                        <div class="num">MWK ${loan.principal.toLocaleString()}</div>
-                        <div class="label">Principal</div>
-                    </div>
-                    <div class="loan-amount-item">
-                        <div class="num">${loan.interest_rate}%</div>
-                        <div class="label">Interest</div>
-                    </div>
-                    <div class="loan-amount-item">
-                        <div class="num">MWK ${loan.total_paid.toLocaleString()}</div>
-                        <div class="label">Total Paid</div>
-                    </div>
-                </div>
-                <div class="loan-due">${loan.status === 'paid_off' ? 'Paid off on' : 'Due'} <span>${loan.due_date ? formatDateLong(loan.due_date) : 'N/A'}</span></div>
-            </div>`;
-    });
+    container.innerHTML = loans.map(loanCardHtml).join('');
 }
 
 // ==================== TRANSACTION HISTORY ====================
 async function loadTransactionHistory() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/transactions`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/transactions`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load transactions');
         const transactions = await res.json();
+        window._lastTransactionHistory = transactions;
         renderTransactionHistory(transactions);
     } catch (err) {
         showToast(err.message, 'error');
@@ -622,8 +740,13 @@ async function loadTransactionHistory() {
 }
 
 function renderTransactionHistory(transactions) {
-    const container = document.querySelector('#page-history .section');
+    const container = document.getElementById('historyTxList');
     if (!container) return;
+
+    if (!transactions || transactions.length === 0) {
+        container.innerHTML = `<div class="tx-item"><div class="tx-info"><div class="tx-sub">No transactions yet</div></div></div>`;
+        return;
+    }
 
     const grouped = {};
     transactions.forEach(tx => {
@@ -633,14 +756,7 @@ function renderTransactionHistory(transactions) {
         grouped[monthKey].push(tx);
     });
 
-    let html = `
-        <div class="section-header">
-            <div class="section-title">All Transactions</div>
-            <button class="print-report-btn" onclick="downloadReport()">
-                <i class="fas fa-file-pdf"></i> Download Report
-            </button>
-        </div>`;
-
+    let html = '';
     for (const [month, txs] of Object.entries(grouped)) {
         html += `<div style="font-size:13px;font-weight:700;color:var(--primary);padding:12px 4px 8px;text-transform:uppercase;letter-spacing:0.5px;">${month}</div>`;
         html += txs.map(tx => {
@@ -669,11 +785,50 @@ function renderTransactionHistory(transactions) {
     container.innerHTML = html;
 }
 
+// Builds a CSV of the member's transaction history and downloads it —
+// a lightweight stand-in for a server-generated PDF report.
+function downloadReport() {
+    const transactions = window._lastTransactionHistory;
+    if (!transactions || transactions.length === 0) {
+        showToast('No transactions to export yet', 'info');
+        return;
+    }
+
+    const rows = [['Date', 'Type', 'Description', 'Amount (MWK)']];
+    transactions.forEach(tx => {
+        rows.push([
+            new Date(tx.created_at).toISOString().slice(0, 10),
+            formatType(tx.type),
+            (tx.description || '').replace(/,/g, ';'),
+            tx.amount.toFixed(2)
+        ]);
+    });
+
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `titukulane-transactions-${getMemberId()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+}
+
 // ==================== NOTES ====================
+let selectedNoteMood = '😊 Good';
+
+function selectNoteMood(element) {
+    document.querySelectorAll('.mood-btn').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+    selectedNoteMood = element.dataset.mood || selectedNoteMood;
+}
+
 async function addNote() {
     if (!requireAuth()) return;
 
-    const input = document.querySelector('.notes-input');
+    const input = document.getElementById('noteText') || document.querySelector('.notes-input');
     const text = input?.value.trim();
 
     if (!text) {
@@ -681,14 +836,14 @@ async function addNote() {
         return;
     }
 
-    const btn = document.querySelector('#page-notes .loan-btn.primary');
+    const btn = document.getElementById('saveNoteBtn') || document.querySelector('#page-notes .loan-btn.primary');
     setLoading(btn, true, 'Saving...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/notes`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/notes`, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ text: text, mood: '😊 Good' })
+            body: JSON.stringify({ text: text, mood: selectedNoteMood })
         });
 
         const data = await res.json();
@@ -708,7 +863,7 @@ async function addNote() {
 async function loadAllNotes() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/notes`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/notes`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load notes');
@@ -719,11 +874,62 @@ async function loadAllNotes() {
     }
 }
 
+// ==================== NOTIFICATIONS ====================
+async function loadNotifications() {
+    if (!requireAuth()) return;
+    const listEl = document.getElementById('notifList');
+    const subEl = document.getElementById('notifSub');
+    try {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/notifications`, {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load notifications');
+        const notifications = await res.json();
+
+        if (subEl) {
+            const unread = notifications.filter(n => !n.is_read).length;
+            subEl.textContent = unread > 0 ? `${unread} unread` : 'All caught up';
+        }
+
+        if (listEl) {
+            if (notifications.length === 0) {
+                listEl.innerHTML = `<div class="notif-item"><div class="notif-content"><div class="notif-desc">No notifications yet</div></div></div>`;
+            } else {
+                listEl.innerHTML = notifications.map(n => `
+                    <div class="notif-item">
+                        <div class="notif-content">
+                            <div class="notif-title" style="font-weight:600;font-size:13px;">${escapeHtml(n.title)}</div>
+                            <div class="notif-desc" style="font-size:12px;color:var(--text-dim);">${escapeHtml(n.description)}</div>
+                            <div class="notif-date" style="font-size:11px;color:var(--text-dim);margin-top:4px;">${formatDateShort(n.created_at)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        const notifDot = document.getElementById('notifDot') || document.querySelector('.header-btn .dot');
+        if (notifDot) {
+            notifDot.style.display = notifications.some(n => !n.is_read) ? 'block' : 'none';
+        }
+
+        // Mark as read now that the user has opened the panel
+        if (notifications.some(n => !n.is_read)) {
+            fetch(`${API_BASE}/api/members/${getMemberId()}/notifications/read`, {
+                method: 'PUT',
+                headers: getAuthHeaders()
+            }).catch(() => {});
+        }
+    } catch (err) {
+        if (subEl) subEl.textContent = 'Could not load notifications';
+        console.error('Notifications error:', err);
+    }
+}
+
 // ==================== CHAT ====================
 async function loadChatMessages() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/messages`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/messages`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load messages');
@@ -735,7 +941,7 @@ async function loadChatMessages() {
 }
 
 function renderChatMessages(messages) {
-    const container = document.querySelector('.chat-messages');
+    const container = document.getElementById('chatMessagesList') || document.querySelector('.chat-messages');
     if (!container) return;
 
     container.innerHTML = '<div class="chat-date-divider">Today</div>';
@@ -761,7 +967,7 @@ async function sendMessage() {
     if (!text) return;
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/messages`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/messages`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ sender: 'member', text: text })
@@ -775,7 +981,7 @@ async function sendMessage() {
 
         // Simulate admin reply
         setTimeout(async () => {
-            await fetch(`${API_BASE}/members/${getMemberId()}/messages`, {
+            await fetch(`${API_BASE}/api/members/${getMemberId()}/messages`, {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
@@ -794,25 +1000,34 @@ async function sendMessage() {
 async function loadProfile() {
     if (!requireAuth()) return;
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
             headers: getAuthHeaders()
         });
         if (!res.ok) throw new Error('Failed to load profile');
-        const member = await res.json();
+        const data = await res.json();
+        const member = data.member || data;
 
         const displayName = document.getElementById('displayName');
         if (displayName) displayName.textContent = member.full_name;
+        const profileAvatar = document.getElementById('profileAvatar');
+        if (profileAvatar && member.full_name) {
+            profileAvatar.textContent = member.full_name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        }
 
-        const profileId = document.querySelector('.profile-id');
+        const profileId = document.getElementById('profileId') || document.querySelector('.profile-id');
         if (profileId) {
             const joined = new Date(member.joined_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
             profileId.textContent = `Member ID: ${member.member_id} | Since ${joined}`;
         }
 
-        const stats = document.querySelectorAll('.profile-stat .num');
-        if (stats[0]) stats[0].textContent = `MWK ${member.savings_balance.toLocaleString()}`;
-        if (stats[1]) stats[1].textContent = member.credit_score;
-        if (stats[2]) stats[2].textContent = member.total_shares;
+        const profileSavings = document.getElementById('profileSavings');
+        if (profileSavings) profileSavings.textContent = money(member.savings_balance);
+        const profileCreditScore = document.getElementById('profileCreditScore');
+        if (profileCreditScore) profileCreditScore.textContent = member.credit_score;
+        const profileLoanCount = document.getElementById('profileLoanCount');
+        if (profileLoanCount) profileLoanCount.textContent = data.active_loans ? data.active_loans.length : member.total_shares;
+
+        updateMetricsChart(member.savings_balance);
     } catch (err) {
         showToast(err.message, 'error');
     }
@@ -833,7 +1048,7 @@ async function saveName() {
     setLoading(btn, true, 'Saving...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}`, {
             method: 'PUT',
             headers: getAuthHeaders(),
             body: JSON.stringify({full_name: newName})
@@ -891,7 +1106,7 @@ async function changePassword() {
     setLoading(btn, true, 'Updating...');
 
     try {
-        const res = await fetch(`${API_BASE}/members/${getMemberId()}/password`, {
+        const res = await fetch(`${API_BASE}/api/members/${getMemberId()}/password`, {
             method: 'PUT',
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -911,3 +1126,9 @@ async function changePassword() {
         setLoading(btn, false);
     }
 }
+
+// ==================== INITIAL LOAD ====================
+document.addEventListener('DOMContentLoaded', () => {
+    if (!isLoggedIn()) return;
+    loadDashboard();
+});
